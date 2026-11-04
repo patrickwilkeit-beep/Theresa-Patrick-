@@ -1,0 +1,9 @@
+{
+  "name": "Theresa & Patrick",
+  "short_name": "T & P",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#100b0f",
+  "theme_color": "#160d12",
+  "description": "Euer gemeinsamer Paar-Kalender"
+}

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#160d12">
+<meta name="description" content="Euer gemeinsamer Paar-Kalender">
+<link rel="manifest" href="manifest.json">
+<title>Theresa & Patrick</title>
+<style>
+:root{--bg:#100b0f;--panel:#1c1219;--panel2:#251720;--wine:#76283f;--wine2:#a13b59;--gold:#d8b66c;--text:#f7edf0;--muted:#bbaab1;--line:#412a35;--green:#82b89b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#2b1420 0,#100b0f 48%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{padding:24px 18px 16px;text-align:center;border-bottom:1px solid var(--line);background:#140d12cc;position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}
+.brand{font-family:Georgia,serif;font-size:28px;letter-spacing:.5px;color:var(--gold)}.sub{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+main{max-width:760px;margin:auto;padding:18px 14px 90px}.tabs{display:flex;gap:7px;overflow:auto;padding:5px 0 15px}.tab,.chip,button,select,input,textarea{font:inherit}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:10px 13px;border-radius:999px;white-space:nowrap}.tab.active{background:var(--wine);border-color:var(--wine2);color:white}
+.panel{background:linear-gradient(145deg,#21151d,#180f15);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 8px 25px #0003}
+h2{font:22px Georgia,serif;color:var(--gold);margin:0 0 12px}h3{margin:0 0 6px;font-size:17px}.muted{color:var(--muted)}.small{font-size:12px;color:var(--muted)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:12px;padding:10px 13px;cursor:pointer}
+button.primary{background:linear-gradient(135deg,var(--wine),#512033);border-color:var(--wine2)}button.gold{color:#1b1115;background:var(--gold);border-color:var(--gold)}button.ghost{background:transparent}
+button:disabled{opacity:.4}
+select,input,textarea{width:100%;background:#120c10;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px;margin:5px 0 10px}
+textarea{min-height:80px;resize:vertical}.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.dayhead{text-align:center;color:var(--muted);font-size:11px;padding:4px 0}.day{min-height:46px;padding:6px 2px;border-radius:10px;text-align:center;background:#1a1117;border:1px solid #35232c;font-size:13px}.day.today{border-color:var(--gold)}.day.selected{background:var(--wine);border-color:var(--wine2)}.day.done:after{content:"✓";display:block;color:var(--green);font-size:10px}.day.empty{visibility:hidden}
+.idea{border-left:3px solid var(--gold);padding:3px 0 3px 12px;margin:10px 0}.tag{display:inline-block;font-size:11px;color:var(--gold);border:1px solid #725336;border-radius:99px;padding:3px 8px;margin:0 5px 6px 0}
+.checkline{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--muted)}.checkline input{width:auto;margin:0;accent-color:var(--wine2)}
+.listitem{padding:12px 0;border-bottom:1px solid var(--line)}.listitem:last-child{border:0}.emptymsg{color:var(--muted);text-align:center;padding:20px 5px}
+footer{text-align:center;color:#8e7d84;font-size:11px;padding:22px 0}
+@media(min-width:600px){main{padding-top:24px}.day{min-height:58px}}
+</style>
+</head>
+<body>
+<header><div class="brand">Theresa <span style="color:#fff">&</span> Patrick</div><div class="sub">Zeit für uns zwei</div></header>
+<main>
+<nav class="tabs" id="tabs">
+<button class="tab active" data-view="kalender">Kalender</button><button class="tab" data-view="listen">Wunschlisten</button><button class="tab" data-view="favoriten">Favoriten</button><button class="tab" data-view="vorlieben">Vorlieben</button><button class="tab" data-view="eigene">Eigene Ideen</button>
+</nav>
+<section id="app"></section>
+<footer>Privat auf diesem Gerät gespeichert · Keine Cloud-Synchronisierung</footer>
+</main>
+<script>
+const today=new Date(); today.setHours(0,0,0,0);
+const start=new Date(today);
+const categories=["Romantik","Erotik","BDSM","Selbstfürsorge"];
+const ideas=[
+["Romantik","Plant gemeinsam einen Abend mit eurem Lieblingsessen und legt die Handys beiseite."],
+["Romantik","Schreibt euch jeweils drei Dinge auf, die ihr am anderen besonders schätzt, und lest sie euch vor."],
+["Romantik","Macht einen Spaziergang und haltet unterwegs an einem Ort, an dem ihr euch gern küsst."],
+["Romantik","Gebt euch zehn Minuten ungeteilte Aufmerksamkeit: zuhören, erzählen, nachfragen."],
+["Romantik","Richtet euch einen kleinen Überraschungsabend mit Musik und Kerzen ein."],
+["Romantik","Tauscht eine Massage der Schultern oder Hände aus – ohne Zeitdruck."],
+["Romantik","Plant ein Date, das ihr schon lange einmal machen wolltet."],
+["Romantik","Erinnert euch gemeinsam an euer schönstes Erlebnis und erzählt, was es besonders gemacht hat."],
+["Erotik","Nehmt euch Zeit für einen sinnlichen Kuss und fragt, worauf ihr gerade Lust habt."],
+["Erotik","Erkundet bei einer Massage, welche Berührungen sich angenehm anfühlen."],
+["Erotik","Verabredet ein langsames Kuscheldate, bei dem jeder jederzeit Wünsche äußern darf."],
+["Erotik","Überrascht euch mit einem Outfit oder einer Atmosphäre, die ihr beide mögt."],
+["Erotik","Teilt einander je einen Wunsch mit – ganz ohne Erwartung, ihn sofort umzusetzen."],
+["Erotik","Probiert ein gemeinsames Sinnes-Date mit Musik, angenehmen Düften und sanften Berührungen."],
+["Erotik","Vereinbart ein klares Start- und Stoppsignal und plant danach bewusst Zeit zum Kuscheln ein."],
+["Erotik","Entdeckt heute bewusst, welche Art von Nähe euch beiden guttut."],
+["BDSM","Sprecht über eine Fantasie und legt gemeinsam Grenzen sowie ein Safeword fest."],
+["BDSM","Probiert einvernehmlich ein kleines Rollen- oder Komplimente-Spiel mit vorher vereinbarten Grenzen."],
+["BDSM","Erstellt gemeinsam eine Ja/Nein/Vielleicht-Liste für neue Ideen."],
+["BDSM","Plant ein kurzes Vertrauensspiel mit klaren Regeln und jederzeitiger Abbruchmöglichkeit."],
+["BDSM","Besprecht, welche Formen von Führung oder Hingabe sich für euch sicher und reizvoll anfühlen."],
+["BDSM","Legt fest, wie ihr während und nach einem intensiveren Spiel aufeinander achtet."],
+["BDSM","Macht ein spielerisches Komplimente- und Anweisungs-Date – nur mit gegenseitigem Einverständnis."],
+["BDSM","Nehmt euch Zeit für Aftercare: Wasser, Wärme, Nähe und ein ruhiges Gespräch."],
+["Selbstfürsorge","Nehmt euch heute bewusst Zeit für eure eigene Entspannung und besprecht danach, wie es euch ging."],
+["Selbstfürsorge","Plant einen Abend, an dem jeder für sich entscheidet, was ihm guttut – ohne Druck."],
+["Selbstfürsorge","Sprecht offen darüber, wie viel Nähe oder Freiraum ihr heute möchtet."],
+["Selbstfürsorge","Gönnt euch eine ruhige Auszeit und kommt danach zu einer Umarmung zusammen."]
+];
+const extras=["mit eurer Lieblingsmusik","bei gedimmtem Licht","mit einem kleinen Überraschungsdetail","nach einem gemeinsamen Spaziergang","ganz spontan und ohne Leistungsdruck","mit einer Tasse Tee oder eurem Lieblingsgetränk","und beendet den Abend mit einem ehrlichen Check-in"];
+const days=Array.from({length:365},(_,i)=>{let [cat,txt]=ideas[i%ideas.length];let suffix=i>=ideas.length? " – "+extras[Math.floor(i/ideas.length)%extras.length]:"";return {id:"d"+i,day:i,cat,text:txt+suffix}});
+let state=JSON.parse(localStorage.getItem("tp_state")||"{}");
+state.done??=[];state.favs??=[];state.lists??={Theresa:[],Patrick:[]};state.custom??=[];state.prefs??=categories.slice();
+let view="kalender", selected=0, monthOffset=0;
+function save(){localStorage.setItem("tp_state",JSON.stringify(state))}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function dateAt(i){let d=new Date(start);d.setDate(d.getDate()+i);return d}
+function fmt(d){return d.toLocaleDateString("de-DE",{day:"2-digit",month:"long",year:"numeric"})}
+function allIdeas(){return [...days,...state.custom]}
+function ideaById(id){return allIdeas().find(x=>x.id===id)}
+function render(){
+document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+let root=document.getElementById("app");
+if(view==="kalender") root.innerHTML=calendarView();
+if(view==="listen") root.innerHTML=listView();
+if(view==="favoriten") root.innerHTML=favView();
+if(view==="vorlieben") root.innerHTML=prefsView();
+if(view==="eigene") root.innerHTML=customView();
+}
+function calendarView(){
+let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,1), year=first.getFullYear(),month=first.getMonth();
+let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
+let html=`<div class="panel"><div class="row"><div><div class="small">Euer gemeinsamer Kalender</div><h2>${first.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</h2></div><div><button onclick="changeMonth(-1)">‹</button> <button onclick="changeMonth(1)">›</button></div></div><div class="grid">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<div class="dayhead">${x}</div>`).join("")}`;
+for(let i=0;i<firstDay;i++)html+='<div class="day empty"></div>';
+for(let n=1;n<=count;n++){let idx=Math.round((new Date(year,month,n)-start)/86400000);let valid=idx>=0&&idx<365;html+=`<button class="day ${valid&&idx===selected?"selected":""} ${valid&&state.done.includes("d"+idx)?"done":""} ${valid&&dateAt(idx).getTime()===today.getTime()?"today":""}" ${valid?`onclick="selectDay(${idx})"`:"disabled"}>${n}</button>`}
+html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt</div></div>`;
+let idea=days[selected];
+html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2><span class="tag">${idea.cat}</span><div class="idea"><h3>${esc(idea.text)}</h3></div><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}','Theresa')">+ Theresa-Wunschliste</button><button class="ghost" onclick="addToList('${idea.id}','Patrick')">+ Patrick-Wunschliste</button></div></div>`;
+html+=`<div class="panel"><div class="row"><h2>Fortschritt</h2><strong>${state.done.filter(x=>x[0]==="d").length} / 365</strong></div><div style="height:8px;background:#38242e;border-radius:9px;overflow:hidden"><div style="height:100%;width:${Math.min(100,state.done.filter(x=>x[0]==="d").length/365*100)}%;background:linear-gradient(90deg,var(--wine2),var(--gold))"></div></div></div>`;
+return html;
+}
+function listView(){let h='<div class="panel"><h2>Wunschlisten</h2><p class="muted">Getrennte Listen auf diesem Gerät. Ohne PIN sind sie nicht vor anderen Personen geschützt.</p></div>';for(let who of ["Theresa","Patrick"]){h+=`<div class="panel"><h2>${who}</h2>`;let arr=state.lists[who];if(!arr.length)h+='<div class="emptymsg">Noch keine Wünsche gespeichert.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem"><div class="row"><div><span class="tag">${x.cat}</span><div>${esc(x.text)}</div></div><button onclick="removeList('${who}','${id}')">Entfernen</button></div></div>`});h+='</div>'}return h}
+function favView(){let arr=state.favs;let h='<div class="panel"><h2>Favoriten</h2>';if(!arr.length)h+='<div class="emptymsg">Markiert eure Lieblingsideen im Kalender.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem"><span class="tag">${x.cat}</span><div>${esc(x.text)}</div><div class="actions"><button onclick="selectById('${id}')">Im Kalender ansehen</button><button onclick="toggleFav('${id}')">★ Entfernen</button></div></div>`});return h+'</div>'}
+function prefsView(){return `<div class="panel"><h2>Unsere Vorlieben</h2><p class="muted">Wählt aus, welche Arten von Ideen ihr im Zufallsgenerator bevorzugt. Alles kann jederzeit geändert werden.</p>${categories.map(c=>`<label class="checkline"><input type="checkbox" ${state.prefs.includes(c)?"checked":""} onchange="togglePref('${c}',this.checked)">${c}</label>`).join("")}<p class="small">Bei BDSM-Ideen gilt: vorher Grenzen, Safeword und gegenseitiges Einverständnis klären.</p></div>`}
+function customView(){return `<div class="panel"><h2>Eigene Idee hinzufügen</h2><label class="small">Kategorie</label><select id="newcat">${categories.map(c=>`<option>${c}</option>`).join("")}</select><label class="small">Eure Idee</label><textarea id="newtext" placeholder="Schreibt eure eigene Idee auf …"></textarea><button class="primary" onclick="addCustom()">Idee speichern</button></div><div class="panel"><h2>Eigene Ideen</h2>${state.custom.length?state.custom.map(x=>`<div class="listitem"><span class="tag">${x.cat}</span><div>${esc(x.text)}</div><button style="margin-top:8px" onclick="deleteCustom('${x.id}')">Löschen</button></div>`).join(""):'<div class="emptymsg">Hier erscheinen eure eigenen Ideen.</div>'}</div>`}
+function changeMonth(n){monthOffset+=n;render()}function selectDay(i){selected=i;monthOffset=0;render()}
+function toggleDone(id,v){state.done=v?[...new Set([...state.done,id])]:state.done.filter(x=>x!==id);save();render()}
+function toggleFav(id){state.favs=state.favs.includes(id)?state.favs.filter(x=>x!==id):[...state.favs,id];save();render()}
+function addToList(id,who){if(!state.lists[who].includes(id))state.lists[who].push(id);save();alert("Zur Wunschliste "+who+" hinzugefügt.");}
+function removeList(who,id){state.lists[who]=state.lists[who].filter(x=>x!==id);save();render()}
+function togglePref(c,v){state.prefs=v?[...state.prefs,c]:state.prefs.filter(x=>x!==c);save()}
+function randomIdea(){let pool=days.filter(x=>state.prefs.includes(x.cat));if(!pool.length)pool=days;let x=pool[Math.floor(Math.random()*pool.length)];selected=x.day;monthOffset=0;render()}
+function selectById(id){let x=ideaById(id);if(x&&x.day!==undefined){selected=x.day;view="kalender";render()}}
+function addCustom(){let t=document.getElementById("newtext").value.trim();if(!t){alert("Bitte zuerst eine Idee eingeben.");return}state.custom.push({id:"c"+Date.now(),cat:document.getElementById("newcat").value,text:t});save();render()}
+function deleteCustom(id){state.custom=state.custom.filter(x=>x.id!==id);state.favs=state.favs.filter(x=>x!==id);for(let w of Object.keys(state.lists))state.lists[w]=state.lists[w].filter(x=>x!==id);save();render()}
+document.getElementById("tabs").addEventListener("click",e=>{let b=e.target.closest("button[data-view]");if(b){view=b.dataset.view;render()}});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+render();
+</script>
+</body></html>
