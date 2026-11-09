@@ -21,19 +21,109 @@ button{border:1px solid var(--line);background:var(--panel2);color:var(--text);b
 button.primary{background:linear-gradient(135deg,var(--wine),#512033);border-color:var(--wine2)}button.gold{color:#1b1115;background:var(--gold);border-color:var(--gold)}button.ghost{background:transparent}
 button:disabled{opacity:.4}
 select,input,textarea{width:100%;background:#120c10;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px;margin:5px 0 10px}
-textarea{min-height:80px;resize:vertical}.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.dayhead{text-align:center;color:var(--muted);font-size:11px;padding:4px 0}.day{min-height:46px;padding:6px 2px;border-radius:10px;text-align:center;background:#1a1117;border:1px solid #35232c;font-size:13px}.day.today{border-color:var(--gold)}.day.selected{background:var(--wine);border-color:var(--wine2)}.day.done:after{content:"✓";display:block;color:var(--green);font-size:10px}.day.empty{visibility:hidden}
-.idea{border-left:3px solid var(--gold);padding:3px 0 3px 12px;margin:10px 0}.tag{display:inline-block;font-size:11px;color:var(--gold);border:1px solid #725336;border-radius:99px;padding:3px 8px;margin:0 5px 6px 0}
+textarea{min-height:80px;resize:vertical}.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.dayhead{text-align:center;color:var(--muted);font-size:11px;padding:4px 0}.day{min-height:46px;padding:6px 2px;border-radius:10px;text-align:center;background:#1a1117;border:1px solid #35232c;font-size:13px}.day.today{border-color:var(--gold)}.day.selected{background:var(--wine);border-color:var(--wine2)}.day.done:after{content:"✓";display:block;color:var(--green);font-size:10px}.day.empty{visibility:hidden}.day-cat-icon{display:block;font-size:10px;line-height:1.1;margin-top:2px;opacity:.9}
+.idea{border-left:3px solid var(--gold);padding:3px 0 3px 12px;margin:10px 0}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.detail-card{background:#0b1428;border:1px solid #354777;border-radius:12px;padding:11px;margin:9px 0}.detail-label{display:block;color:#70e7ff;font-size:12px;margin-bottom:5px}.detail-card strong{font-size:14px}.materials{margin:5px 0 0;padding-left:20px;color:var(--text)}.materials li{margin:4px 0}.tag{display:inline-block;font-size:11px;color:var(--gold);border:1px solid #725336;border-radius:99px;padding:3px 8px;margin:0 5px 6px 0}
 .checkline{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--muted)}.checkline input{width:auto;margin:0;accent-color:var(--wine2)}
 .listitem{padding:12px 0;border-bottom:1px solid var(--line)}.listitem:last-child{border:0}.emptymsg{color:var(--muted);text-align:center;padding:20px 5px}
 footer{text-align:center;color:#8e7d84;font-size:11px;padding:22px 0}
 @media(min-width:600px){main{padding-top:24px}.day{min-height:58px}}
+
+/* IRON & DESIRE – futuristisches Neon-Design (Kalenderlogik unverändert) */
+:root{--bg:#070914;--panel:#101426;--panel2:#171d35;--wine:#e32d85;--wine2:#ff58b0;--gold:#57d9ff;--text:#f3f7ff;--muted:#a6b2d1;--line:#29365c;--green:#67f5c1}
+body{background:radial-gradient(ellipse at 12% 0%,#32114b 0,transparent 38%),radial-gradient(ellipse at 88% 8%,#082f53 0,transparent 36%),linear-gradient(145deg,#070914,#0b1020 55%,#080b17);color:var(--text)}
+header{background:linear-gradient(180deg,#0b1024ed,#090d1bec);border-bottom:1px solid #3b4a7a;box-shadow:0 8px 35px #0008,0 1px 18px #32cfff20}
+.brand{font-family:system-ui,sans-serif;font-weight:900;letter-spacing:3px;font-size:clamp(23px,5vw,34px);color:#fff;text-shadow:0 0 7px #ff399d,0 0 18px #ff399d,0 0 34px #8b35ff}
+.sub{color:#70e7ff;text-shadow:0 0 10px #18bfff;letter-spacing:3px}
+.panel{background:linear-gradient(145deg,#141b33f2,#0d1225f5);border:1px solid #354777;box-shadow:0 10px 30px #0006,0 0 18px #1a9fff16}
+h2{color:#67e5ff;text-shadow:0 0 12px #159cff55}
+.tab{background:#11182d;border-color:#33436f;color:#b9c9ed;box-shadow:inset 0 0 12px #101a38}
+.tab.active{background:linear-gradient(110deg,#741c62,#153f72);border-color:#ff58b0;color:#fff;box-shadow:0 0 12px #ff36a766,0 0 20px #28caff33}
+button{background:linear-gradient(145deg,#18213c,#10172c);border-color:#3b4d7c;box-shadow:0 0 10px #163c7650}
+button.primary{background:linear-gradient(110deg,#8a1d65,#174f83);border-color:#ff58b0;box-shadow:0 0 12px #ff3a9b66}
+button.gold{background:linear-gradient(110deg,#5ee7ff,#a4f7ff);border-color:#8df1ff;color:#06111d;box-shadow:0 0 16px #36dfff88}
+select,input,textarea{background:#0b1124;border-color:#354777;color:#f3f7ff}
+.day{background:#10182d;border-color:#2c3d68;box-shadow:inset 0 0 9px #1b2c501f}
+.day.today{border-color:#62e9ff;box-shadow:0 0 10px #28d8ff77}
+.day.selected{background:linear-gradient(145deg,#6f1d60,#174d78);border-color:#ff58b0;box-shadow:0 0 13px #ff3a9b66}
+.tag{color:#74eaff;border-color:#3b9ec2;background:#10243a}
+.idea{border-left-color:#ff58b0}
+@keyframes neonPulse{0%,100%{filter:drop-shadow(0 0 5px currentColor);opacity:1}50%{filter:drop-shadow(0 0 13px currentColor);opacity:.86}}
+.neon-hearts{display:flex;justify-content:center;gap:clamp(16px,6vw,48px);margin:13px auto 2px;flex-wrap:wrap}
+.neon-heart{font-size:22px;font-weight:900;letter-spacing:1px;animation:neonPulse 2.4s ease-in-out infinite}
+.neon-heart.theresa{color:#ff4eaa;text-shadow:0 0 7px #ff3c9b,0 0 18px #ff168b}
+.neon-heart.patrick{color:#55caff;text-shadow:0 0 7px #28baff,0 0 18px #168cff}
+@media(prefers-reduced-motion:reduce){.neon-heart{animation:none}}
+
+
+/* Startseite: schwarzer Neon-Look mit dezent geprägten Kategorie-Symbolen */
+body{
+  background:
+    radial-gradient(ellipse at 12% 0%,#1a0b28 0,transparent 38%),
+    radial-gradient(ellipse at 88% 8%,#061e32 0,transparent 36%),
+    linear-gradient(145deg,#03050b,#070b16 58%,#03050a);
+}
+body:before{
+  content:"♥   🔥   ⛓   🌶   ☾      ⛓   ♥   ☾   🔥      🌶   ♥";
+  position:fixed; inset:0; z-index:-1; pointer-events:none;
+  display:block; overflow:hidden; padding:5vh 2vw;
+  font-size:clamp(42px,9vw,112px); line-height:2.0;
+  letter-spacing:clamp(12px,4vw,58px); word-spacing:10px;
+  color:#111a2b; opacity:.22;
+  text-shadow:1px 1px 0 #24304b, 3px 3px 0 #050811, 0 0 18px #12334a;
+  transform:rotate(-9deg) scale(1.08);
+  white-space:normal;
+}
+header{
+  border:1px solid #30446d;
+  border-left:2px solid #ff4eaa; border-right:2px solid #55caff;
+  border-radius:0 0 20px 20px;
+  box-shadow:0 0 12px #ff39a733,0 0 20px #28caff22,inset 0 0 18px #142343;
+}
+.home-hero{
+  position:relative; overflow:hidden; text-align:center;
+  margin:14px 0 18px; padding:25px 18px 22px;
+  border:1px solid #3b4e7c; border-radius:22px;
+  background:linear-gradient(145deg,#0c1225ed,#080d1ceb);
+  box-shadow:0 0 0 1px #ff4eaa22,0 0 22px #1b9fff25,inset 0 0 26px #16284b66;
+}
+.home-hero:after{
+  content:""; position:absolute; inset:7px; border:1px solid #55caff35;
+  border-radius:16px; pointer-events:none;
+}
+.home-hero h1{
+  margin:0 0 8px; font-size:clamp(25px,6vw,38px); letter-spacing:2px;
+  color:#fff; text-shadow:0 0 8px #ff399d,0 0 20px #28caff;
+}
+.home-hero p{color:#b9c9e8;max-width:520px;margin:0 auto 16px}
+.home-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.home-card{
+  min-height:112px; display:flex; flex-direction:column; justify-content:center;
+  align-items:center; gap:7px; padding:14px 8px; border-radius:16px;
+  border:1px solid #334674; background:linear-gradient(145deg,#131d37,#090f20);
+  color:#eaf5ff; box-shadow:inset 0 0 14px #0b1a35,0 0 12px #1a9fff16;
+  cursor:pointer; text-align:center;
+}
+.home-card:active{transform:translateY(1px)}
+.home-icon{
+  font-size:30px; line-height:1; filter:drop-shadow(2px 3px 1px #02040b)
+    drop-shadow(0 0 8px #45cfff55);
+  text-shadow:1px 2px 0 #26395c,2px 4px 0 #050812,0 0 12px #40cfff55;
+}
+.home-card strong{font-size:14px}
+.home-card small{color:#9eafd3;font-size:11px}
+.home-kicker{color:#70e7ff;text-transform:uppercase;letter-spacing:2px;font-size:10px}
+.home-hero .home-actions{position:relative;z-index:1}
+.home-hero button{position:relative;z-index:1}
+@media(min-width:600px){.home-actions{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 </style>
 </head>
 <body>
-<header><div class="brand">Theresa <span style="color:#fff">&</span> Patrick</div><div class="sub">Zeit für uns zwei</div></header>
+<header><div class="brand">IRON <span style="color:#65e7ff">&</span> DESIRE</div><div class="sub">THERESA · PATRICK · ZEIT FÜR UNS ZWEI</div><div class="neon-hearts"><span class="neon-heart theresa">♥ T · THERESA</span><span class="neon-heart patrick">♥ P · PATRICK</span></div></header>
 <main>
 <nav class="tabs" id="tabs">
-<button class="tab active" data-view="kalender">Kalender</button><button class="tab" data-view="listen">Wunschlisten</button><button class="tab" data-view="favoriten">Favoriten</button><button class="tab" data-view="vorlieben">Vorlieben</button><button class="tab" data-view="eigene">Eigene Ideen</button>
+<button class="tab active" data-view="start">Startseite</button>
+<button class="tab" data-view="kalender">Kalender</button><button class="tab" data-view="outdoor">🌙 Outdoor</button><button class="tab" data-view="listen">Wunschlisten</button><button class="tab" data-view="favoriten">Favoriten</button><button class="tab" data-view="vorlieben">Vorlieben</button><button class="tab" data-view="eigene">Eigene Ideen</button>
 </nav>
 <section id="app"></section>
 <footer>Privat auf diesem Gerät gespeichert · Keine Cloud-Synchronisierung</footer>
@@ -41,81 +131,148 @@ footer{text-align:center;color:#8e7d84;font-size:11px;padding:22px 0}
 <script>
 const today=new Date(); today.setHours(0,0,0,0);
 const start=new Date(today);
-const categories=["Romantik","Erotik","BDSM","Selbstfürsorge"];
+const categories=["Romantik","Zärtlichkeiten","Oral","Anal","BDSM","Spanking","Fesseln","Intensiv","Massage","Selbstbefriedigung","Outdoor"];
 const ideas=[
-["Romantik","Plant gemeinsam einen Abend mit eurem Lieblingsessen und legt die Handys beiseite."],
-["Romantik","Schreibt euch jeweils drei Dinge auf, die ihr am anderen besonders schätzt, und lest sie euch vor."],
-["Romantik","Macht einen Spaziergang und haltet unterwegs an einem Ort, an dem ihr euch gern küsst."],
-["Romantik","Gebt euch zehn Minuten ungeteilte Aufmerksamkeit: zuhören, erzählen, nachfragen."],
-["Romantik","Richtet euch einen kleinen Überraschungsabend mit Musik und Kerzen ein."],
-["Romantik","Tauscht eine Massage der Schultern oder Hände aus – ohne Zeitdruck."],
-["Romantik","Plant ein Date, das ihr schon lange einmal machen wolltet."],
-["Romantik","Erinnert euch gemeinsam an euer schönstes Erlebnis und erzählt, was es besonders gemacht hat."],
-["Erotik","Nehmt euch Zeit für einen sinnlichen Kuss und fragt, worauf ihr gerade Lust habt."],
-["Erotik","Erkundet bei einer Massage, welche Berührungen sich angenehm anfühlen."],
-["Erotik","Verabredet ein langsames Kuscheldate, bei dem jeder jederzeit Wünsche äußern darf."],
-["Erotik","Überrascht euch mit einem Outfit oder einer Atmosphäre, die ihr beide mögt."],
-["Erotik","Teilt einander je einen Wunsch mit – ganz ohne Erwartung, ihn sofort umzusetzen."],
-["Erotik","Probiert ein gemeinsames Sinnes-Date mit Musik, angenehmen Düften und sanften Berührungen."],
-["Erotik","Vereinbart ein klares Start- und Stoppsignal und plant danach bewusst Zeit zum Kuscheln ein."],
-["Erotik","Entdeckt heute bewusst, welche Art von Nähe euch beiden guttut."],
-["BDSM","Sprecht über eine Fantasie und legt gemeinsam Grenzen sowie ein Safeword fest."],
-["BDSM","Probiert einvernehmlich ein kleines Rollen- oder Komplimente-Spiel mit vorher vereinbarten Grenzen."],
-["BDSM","Erstellt gemeinsam eine Ja/Nein/Vielleicht-Liste für neue Ideen."],
-["BDSM","Plant ein kurzes Vertrauensspiel mit klaren Regeln und jederzeitiger Abbruchmöglichkeit."],
-["BDSM","Besprecht, welche Formen von Führung oder Hingabe sich für euch sicher und reizvoll anfühlen."],
-["BDSM","Legt fest, wie ihr während und nach einem intensiveren Spiel aufeinander achtet."],
-["BDSM","Macht ein spielerisches Komplimente- und Anweisungs-Date – nur mit gegenseitigem Einverständnis."],
-["BDSM","Nehmt euch Zeit für Aftercare: Wasser, Wärme, Nähe und ein ruhiges Gespräch."],
-["Selbstfürsorge","Nehmt euch heute bewusst Zeit für eure eigene Entspannung und besprecht danach, wie es euch ging."],
-["Selbstfürsorge","Plant einen Abend, an dem jeder für sich entscheidet, was ihm guttut – ohne Druck."],
-["Selbstfürsorge","Sprecht offen darüber, wie viel Nähe oder Freiraum ihr heute möchtet."],
-["Selbstfürsorge","Gönnt euch eine ruhige Auszeit und kommt danach zu einer Umarmung zusammen."]
+{"cat": "Zärtlichkeiten", "text": "Kuschelzeit – Theresa beginnt mit einer langen Umarmung und fragt Patrick, ob er heute lieber gehalten oder selbst gehalten werden möchte. Danach tauscht ihr die Rollen.", "roles": "Theresa beginnt mit einer langen Umarmung und fragt Patrick, ob er heute lieber gehalten oder selbst gehalten werden möchte.", "duration": "20–40 Minuten", "level": "Zärtlich", "materials": ["Decke und Kissen", "Ungestörter Platz", "Leise Musik"]},
+{"cat": "Oral", "text": "Oral verwöhnen – Ihr besprecht vorher Wünsche und Grenzen. Theresa übernimmt nur das, dem beide ausdrücklich zugestimmt haben; Patrick gibt Rückmeldung. Rollenwechsel nur, wenn beide möchten.", "roles": "Ihr besprecht vorher Wünsche und Grenzen.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Massage", "text": "Ganzkörpermassage – Patrick massiert Theresa an Rücken, Schultern, Armen und Beinen und fragt nach dem gewünschten Druck. Danach tauscht ihr die Rollen.", "roles": "Patrick massiert Theresa an Rücken, Schultern, Armen und Beinen und fragt nach dem gewünschten Druck.", "duration": "30–45 Minuten", "level": "Zärtlich", "materials": ["Massageöl oder Lotion", "Zwei Handtücher", "Decke"]},
+{"cat": "BDSM", "text": "Blindes Vertrauen – Theresa erklärt Patrick den Ablauf. Eine weiche Augenbinde kommt nur mit seinem Einverständnis zum Einsatz; Theresa kündigt Berührungen an und fragt regelmäßig nach.", "roles": "Theresa erklärt Patrick den Ablauf.", "duration": "20–45 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbarte Ausrüstung", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Anal", "text": "Anal entdecken – Ihr besprecht Wünsche, Grenzen, Hygiene und Schutz. Theresa bestimmt, was sich für sie richtig anfühlt; Patrick achtet auf Rückmeldung. Kein Schritt wird gegen Unbehagen fortgesetzt.", "roles": "Ihr besprecht Wünsche, Grenzen, Hygiene und Schutz.", "duration": "Ohne Zeitdruck", "level": "Erotisch", "materials": ["Wasserbasierter Gleitstoff", "Geeigneter Schutz", "Handtücher"]},
+{"cat": "Zärtlichkeiten", "text": "Federleichte Berührungen – Patrick berührt Theresa sanft an Armen, Schultern und Rücken. Danach übernimmt Theresa und lässt Patrick dieselbe Ruhe genießen.", "roles": "Patrick berührt Theresa sanft an Armen, Schultern und Rücken.", "duration": "20–40 Minuten", "level": "Zärtlich", "materials": ["Decke und Kissen", "Ungestörter Platz", "Leise Musik"]},
+{"cat": "Spanking", "text": "Spanking – klare Absprachen – Ihr legt erlaubte Bereiche, Intensität, Stoppsignal und Pausen fest. Theresa übernimmt heute die aktive Rolle innerhalb dieser Vereinbarung; danach folgt ein Check-in.", "roles": "Ihr legt erlaubte Bereiche, Intensität, Stoppsignal und Pausen fest.", "duration": "10–20 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbartes Zubehör", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Selbstbefriedigung", "text": "Eigene Wünsche, gemeinsame Nähe – Patrick sagt, ob er heute eine private Auszeit oder gemeinsame Nähe möchte. Theresa unterstützt nur so, wie es ausdrücklich willkommen ist.", "roles": "Patrick sagt, ob er heute eine private Auszeit oder gemeinsame Nähe möchte.", "duration": "Individuell und ohne Zeitvorgabe", "level": "Erotisch", "materials": ["Privater, bequemer Ort", "Bei Wunsch gereinigtes Zubehör", "Handtücher und Wasser"]},
+{"cat": "Oral", "text": "Lange Küsse am ganzen Körper – Ihr besprecht, welche Berührungen heute willkommen sind. Patrick nimmt sich Zeit für Theresa; danach entscheidet sie, ob sie die Initiative übernimmt oder Nähe genießen möchte.", "roles": "Ihr besprecht, welche Berührungen heute willkommen sind.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Romantik", "text": "Sinnliche Ölmassage – Theresa massiert Patrick langsam an Rücken und Schultern. Danach tauscht ihr die Rollen und lasst den Abend mit einer Umarmung ausklingen.", "roles": "Theresa massiert Patrick langsam an Rücken und Schultern.", "duration": "30–90 Minuten", "level": "Zärtlich", "materials": ["Kerzen oder stimmungsvolles Licht", "Musik", "Lieblingsgetränk"]},
+{"cat": "Fesseln", "text": "Handgelenke fesseln – sicher und lösbar – Theresa fesselt Patrick locker mit schnell lösbarem Material und bleibt in seiner Nähe. Ihr prüft regelmäßig Wohlbefinden und Bewegungsfreiheit; danach wird gelöst.", "roles": "Theresa fesselt Patrick locker mit schnell lösbarem Material und bleibt in seiner Nähe.", "duration": "10–25 Minuten plus Nachruhe", "level": "BDSM-intensiv", "materials": ["Schnell lösbare Fesseln", "Sicherheitsschere in Reichweite", "Safeword/Stoppsignal"]},
+{"cat": "Oral", "text": "Lippen und Zunge – Wünsche austauschen – Theresa beginnt mit Küssen in dem Tempo, das Patrick angenehm ist. Ihr fragt nach, ob ihr weitermachen, wechseln oder kuscheln möchtet.", "roles": "Theresa beginnt mit Küssen in dem Tempo, das Patrick angenehm ist.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Anal", "text": "Anal-Massage – nur nach Zustimmung – Patrick fragt Theresa ausdrücklich, ob sie eine sanfte äußere Berührung möchte. Sie bestimmt Tempo und Grenzen; bei Unsicherheit oder Unwohlsein wird pausiert.", "roles": "Patrick fragt Theresa ausdrücklich, ob sie eine sanfte äußere Berührung möchte.", "duration": "Ohne Zeitdruck", "level": "Erotisch", "materials": ["Wasserbasierter Gleitstoff", "Geeigneter Schutz", "Handtücher"]},
+{"cat": "BDSM", "text": "Augen verbinden und führen – Patrick übernimmt die Führung, beschreibt vorher den Ablauf und kündigt Berührungen an. Theresa entscheidet, ob sie die Augenbinde tragen möchte und kann jederzeit abbrechen.", "roles": "Patrick übernimmt die Führung, beschreibt vorher den Ablauf und kündigt Berührungen an.", "duration": "20–45 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbarte Ausrüstung", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Massage", "text": "Sinnliche Herausforderung – Theresa wählt drei angenehme Berührungsarten aus. Patrick probiert sie nacheinander aus; danach wählt Patrick drei Varianten und Theresa übernimmt.", "roles": "Theresa wählt drei angenehme Berührungsarten aus.", "duration": "30–45 Minuten", "level": "Zärtlich", "materials": ["Massageöl oder Lotion", "Zwei Handtücher", "Decke"]},
+{"cat": "Oral", "text": "69 – nur wenn beide es möchten – Ihr besprecht, ob diese gemeinsame Variante heute für beide angenehm ist. Ein klares Ja und ein Stoppsignal sind Voraussetzung; jede Person kann jederzeit pausieren.", "roles": "Ihr besprecht, ob diese gemeinsame Variante heute für beide angenehm ist.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Intensiv", "text": "Intensiver Leidenschaftsabend – Patrick schlägt einen Ablauf vor und Theresa bestätigt oder verändert ihn. Ihr vereinbart vorher Grenzen, Intensität, Pausen und Aftercare.", "roles": "Patrick schlägt einen Ablauf vor und Theresa bestätigt oder verändert ihn.", "duration": "30–60 Minuten plus Aftercare", "level": "Intensiv", "materials": ["Nur vorher vereinbarte Utensilien", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Zärtlichkeiten", "text": "Gemeinsam baden oder duschen – Theresa bereitet Handtücher und eine angenehme Atmosphäre vor. Ihr genießt gemeinsame Zeit ohne festes Ziel und beendet sie mit einer Umarmung.", "roles": "Theresa bereitet Handtücher und eine angenehme Atmosphäre vor.", "duration": "20–40 Minuten", "level": "Zärtlich", "materials": ["Decke und Kissen", "Ungestörter Platz", "Leise Musik"]},
+{"cat": "Anal", "text": "Rimming – Wünsche und Grenzen – Ihr besprecht ausdrücklich, ob diese Idee für beide infrage kommt, und klärt Hygiene, Schutz und Grenzen. Ein Nein oder Unsicherheit bedeutet: heute nicht.", "roles": "Ihr besprecht ausdrücklich, ob diese Idee für beide infrage kommt, und klärt Hygiene, Schutz und Grenzen.", "duration": "Ohne Zeitdruck", "level": "Erotisch", "materials": ["Wasserbasierter Gleitstoff", "Geeigneter Schutz", "Handtücher"]},
+{"cat": "BDSM", "text": "Dominanzabend – Theresa übernimmt – Theresa gestaltet einen kurzen Abend mit vorher vereinbarten Regeln. Patrick nennt seine Grenzen; GELB bedeutet langsamer oder Pause, STOP beendet sofort.", "roles": "Theresa gestaltet einen kurzen Abend mit vorher vereinbarten Regeln.", "duration": "20–45 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbarte Ausrüstung", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Oral", "text": "Verwöhnprogramm für den Intimbereich – Ihr besprecht vorher, welche Art von Nähe gewünscht ist. Patrick richtet sich nach Theresas Rückmeldung und fragt nach, statt etwas vorauszusetzen.", "roles": "Ihr besprecht vorher, welche Art von Nähe gewünscht ist.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Fesseln", "text": "Fesselspiel mit Massage – Theresa nutzt nur schnell lösbares Material, bleibt in Reichweite und löst danach die Fesseln. Anschließend massiert sie Patrick die Schultern.", "roles": "Theresa nutzt nur schnell lösbares Material, bleibt in Reichweite und löst danach die Fesseln.", "duration": "10–25 Minuten plus Nachruhe", "level": "BDSM-intensiv", "materials": ["Schnell lösbare Fesseln", "Sicherheitsschere in Reichweite", "Safeword/Stoppsignal"]},
+{"cat": "Spanking", "text": "Festhalten und Kontrolle – Rollenspiel – Ihr besprecht vorher erlaubte Positionen und Tabus. Patrick führt heute im vereinbarten Rahmen; Theresa behält jederzeit ihre Stopprechte.", "roles": "Ihr besprecht vorher erlaubte Positionen und Tabus.", "duration": "10–20 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbartes Zubehör", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Intensiv", "text": "Rough Play – Grenzen zuerst – Ihr wählt gemeinsam, was „intensiv“ bedeutet, und schließt alles aus, was nicht ausdrücklich vereinbart wurde. Pausen und Aftercare werden vorher festgelegt.", "roles": "Ihr wählt gemeinsam, was „intensiv“ bedeutet, und schließt alles aus, was nicht ausdrücklich vereinbart wurde.", "duration": "30–60 Minuten plus Aftercare", "level": "Intensiv", "materials": ["Nur vorher vereinbarte Utensilien", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Romantik", "text": "Küssen ohne Eile – Patrick nimmt Theresa in den Arm. Ihr küsst euch ohne Ablenkung; jeder darf das Tempo verändern oder eine Pause wünschen.", "roles": "Patrick nimmt Theresa in den Arm.", "duration": "30–90 Minuten", "level": "Zärtlich", "materials": ["Kerzen oder stimmungsvolles Licht", "Musik", "Lieblingsgetränk"]},
+{"cat": "BDSM", "text": "Rollentausch – Ihr tauscht die gewohnte Führungsrolle, wenn beide das möchten. Vorher besprecht ihr Ablauf, Grenzen und Stoppsignal; hinterher tauscht ihr Eindrücke aus.", "roles": "Ihr tauscht die gewohnte Führungsrolle, wenn beide das möchten.", "duration": "20–45 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbarte Ausrüstung", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Anal", "text": "Anal-Verwöhnabend – langsam und achtsam – Ihr besprecht Vorbereitung, Schutz und Grenzen. Theresa gibt Tempo und Grenzen vor; Patrick begleitet aufmerksam und akzeptiert jede Pause.", "roles": "Ihr besprecht Vorbereitung, Schutz und Grenzen.", "duration": "Ohne Zeitdruck", "level": "Erotisch", "materials": ["Wasserbasierter Gleitstoff", "Geeigneter Schutz", "Handtücher"]},
+{"cat": "BDSM", "text": "Bestrafungsspiel – vereinbartes Rollenspiel – Ihr legt vorher fest, dass es ein einvernehmliches Rollenspiel ist, und vereinbart Grenzen, Intensität und Stoppsignal. Patrick übernimmt die aktive Rolle; danach folgt Aftercare.", "roles": "Ihr legt vorher fest, dass es ein einvernehmliches Rollenspiel ist, und vereinbart Grenzen, Intensität und Stoppsignal.", "duration": "20–45 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbarte Ausrüstung", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Oral", "text": "Gesicht und Nähe – Theresa entscheidet selbst, welche Nähe sie heute genießen möchte. Patrick wartet auf ihr klares Einverständnis und achtet auf Komfort und Rückmeldung.", "roles": "Theresa entscheidet selbst, welche Nähe sie heute genießen möchte.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Intensiv", "text": "BDSM-Challenge – drei vereinbarte Aufgaben – Patrick schlägt drei kleine Aufgaben vor, die Theresa einzeln annehmen oder ablehnen kann. Nach jeder Aufgabe gibt es einen Check-in; nichts wird spontan gesteigert.", "roles": "Patrick schlägt drei kleine Aufgaben vor, die Theresa einzeln annehmen oder ablehnen kann.", "duration": "30–60 Minuten plus Aftercare", "level": "Intensiv", "materials": ["Nur vorher vereinbarte Utensilien", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Massage", "text": "Verwöhnabend für Theresa – Patrick richtet Handtücher und Öl her, massiert Theresa an Rücken, Schultern, Armen und Beinen und fragt nach dem Druck. Theresa darf einfach entspannen.", "roles": "Patrick richtet Handtücher und Öl her, massiert Theresa an Rücken, Schultern, Armen und Beinen und fragt nach dem Druck.", "duration": "30–45 Minuten", "level": "Zärtlich", "materials": ["Massageöl oder Lotion", "Zwei Handtücher", "Decke"]},
+{"cat": "Zärtlichkeiten", "text": "Verwöhnabend für Patrick – Theresa richtet den Platz her, massiert Patrick an Rücken, Schultern und Händen und fragt, was angenehm ist. Danach kuschelt ihr zusammen.", "roles": "Theresa richtet den Platz her, massiert Patrick an Rücken, Schultern und Händen und fragt, was angenehm ist.", "duration": "20–40 Minuten", "level": "Zärtlich", "materials": ["Decke und Kissen", "Ungestörter Platz", "Leise Musik"]},
+{"cat": "Selbstbefriedigung", "text": "Wunschzettel-Abend – Jeder schreibt drei Wünsche auf: einen zärtlichen, einen erotischen und einen neuen. Ihr lest sie vor und sortiert gemeinsam in Ja, Vielleicht und Nein.", "roles": "Jeder schreibt drei Wünsche auf: einen zärtlichen, einen erotischen und einen neuen.", "duration": "Individuell und ohne Zeitvorgabe", "level": "Erotisch", "materials": ["Privater, bequemer Ort", "Bei Wunsch gereinigtes Zubehör", "Handtücher und Wasser"]},
+{"cat": "BDSM", "text": "Neuland-Abend – Ihr wählt gemeinsam eine neue, vorher besprochene Idee aus. Ihr prüft, ob beide ein klares Ja haben, legt Grenzen fest und besprecht danach eure Eindrücke.", "roles": "Ihr wählt gemeinsam eine neue, vorher besprochene Idee aus.", "duration": "20–45 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbarte Ausrüstung", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Intensiv", "text": "Zwei-Stimmungs-Abend – Patrick beginnt mit einer ruhigen Umarmung und Massage. Wenn beide später mehr Intensität möchten, besprecht ihr vorher neu, was willkommen ist.", "roles": "Patrick beginnt mit einer ruhigen Umarmung und Massage.", "duration": "30–60 Minuten plus Aftercare", "level": "Intensiv", "materials": ["Nur vorher vereinbarte Utensilien", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Romantik", "text": "Theresa bestimmt – Theresa wählt Musik, Atmosphäre und eine gemeinsame Aktivität. Patrick beteiligt sich an Dingen, die auch für ihn passen; danach besprecht ihr den Abend.", "roles": "Theresa wählt Musik, Atmosphäre und eine gemeinsame Aktivität.", "duration": "30–90 Minuten", "level": "Zärtlich", "materials": ["Kerzen oder stimmungsvolles Licht", "Musik", "Lieblingsgetränk"]},
+{"cat": "Spanking", "text": "Patrick bestimmt – Patrick schlägt eine Aktivität vor. Theresa entscheidet bei jedem Punkt frei mit; bei intensiveren Ideen werden Grenzen, Stoppsignal und Pausen vorher geklärt.", "roles": "Patrick schlägt eine Aktivität vor.", "duration": "10–20 Minuten plus Aftercare", "level": "BDSM-intensiv", "materials": ["Vorher vereinbartes Zubehör", "Safeword/Stoppsignal", "Wasser und Decke"]},
+{"cat": "Zärtlichkeiten", "text": "Alles nach Gefühl – Ihr legt keinen festen Ablauf fest. Einer beginnt mit einer Umarmung oder Massage, der andere sagt, was sich gut anfühlt. Ihr entscheidet Schritt für Schritt gemeinsam.", "roles": "Ihr legt keinen festen Ablauf fest.", "duration": "20–40 Minuten", "level": "Zärtlich", "materials": ["Decke und Kissen", "Ungestörter Platz", "Leise Musik"]},
+{"cat": "Oral", "text": "Sinnliche Herausforderung – Patrick nennt einen Wunsch für einen sinnlichen Kuss- und Näheabend. Theresa entscheidet, was sie davon übernehmen möchte; danach tauscht ihr euch aus.", "roles": "Patrick nennt einen Wunsch für einen sinnlichen Kuss- und Näheabend.", "duration": "Nach gemeinsamer Absprache", "level": "Erotisch", "materials": ["Handtücher oder Taschentücher", "Wasser", "Ggf. geeigneter Schutz"]},
+{"cat": "Fesseln", "text": "Vertrauensvolles Fesselspiel – Patrick prüft mit Theresa das Material und die schnelle Lösung. Er übernimmt das Fesseln nur mit ihrem klaren Ja, bleibt in Reichweite und löst sofort auf Wunsch.", "roles": "Patrick prüft mit Theresa das Material und die schnelle Lösung.", "duration": "10–25 Minuten plus Nachruhe", "level": "BDSM-intensiv", "materials": ["Schnell lösbare Fesseln", "Sicherheitsschere in Reichweite", "Safeword/Stoppsignal"]}
 ];
-const extras=["mit eurer Lieblingsmusik","bei gedimmtem Licht","mit einem kleinen Überraschungsdetail","nach einem gemeinsamen Spaziergang","ganz spontan und ohne Leistungsdruck","mit einer Tasse Tee oder eurem Lieblingsgetränk","und beendet den Abend mit einem ehrlichen Check-in"];
-const days=Array.from({length:365},(_,i)=>{let [cat,txt]=ideas[i%ideas.length];let suffix=i>=ideas.length? " – "+extras[Math.floor(i/ideas.length)%extras.length]:"";return {id:"d"+i,day:i,cat,text:txt+suffix}});
+const outdoorIdeas=[
+{id:"outdoor-walk",cat:"Outdoor",text:"Ein gemeinsamer Spaziergang mit einer kleinen Aufgabe: Jeder sucht einen Ort aus, an dem ihr kurz innehalten und euch einen Wunsch erzählen könnt."},
+{id:"outdoor-cafe",cat:"Outdoor",text:"Ein spontanes Café-Date: Einer wählt das Getränk für den anderen und ihr plant dabei euer nächstes gemeinsames Abenteuer."},
+{id:"outdoor-shopping",cat:"Outdoor",text:"Ein Shopping-Date mit einer vereinbarten Stil-Challenge: Sucht füreinander ein Outfit oder Accessoire aus – gekauft wird nur, was beide mögen."},
+{id:"outdoor-drive",cat:"Outdoor",text:"Eine kleine Ausfahrt zu einem schönen Aussichtspunkt. Nehmt etwas zu trinken mit und genießt dort ungestörte gemeinsame Zeit."},
+{id:"outdoor-picnic",cat:"Outdoor",text:"Ein Picknick an einem ruhigen, erlaubten Platz: Jeder bringt eine Kleinigkeit mit, die den anderen überrascht."},
+{id:"outdoor-sunset",cat:"Outdoor",text:"Ein Sonnenuntergangs-Date mit Musik und einem Gespräch darüber, worauf ihr euch als Paar freut."},
+{id:"outdoor-photo",cat:"Outdoor",text:"Eine kleine Foto-Schnitzeljagd zu zweit: Findet drei Motive, die für Nähe, Abenteuer und Vertrauen stehen."},
+{id:"outdoor-private",cat:"Outdoor",text:"Ein diskretes Date an einem privaten, dafür geeigneten Ort – mit vorher abgesprochenem Rahmen und jederzeit möglichem Abbruch."}
+];
+const days=Array.from({length:365},(_,i)=>{
+  const a=ideas[i%ideas.length];
+  return {...a,id:"d"+i,day:i};
+});
 let state=JSON.parse(localStorage.getItem("tp_state")||"{}");
-state.done??=[];state.favs??=[];state.lists??={Theresa:[],Patrick:[]};state.custom??=[];state.prefs??=categories.slice();
-let view="kalender", selected=0, monthOffset=0;
+state.done??=[];state.favs??=[];state.lists??={Theresa:[],Patrick:[]};state.lists.Theresa??=[];state.lists.Patrick??=[];state.custom??=[];state.prefs=[...new Set([...(state.prefs||[]),...categories])];
+let view="start", selected=0, monthOffset=0;
 function save(){localStorage.setItem("tp_state",JSON.stringify(state))}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function dateAt(i){let d=new Date(start);d.setDate(d.getDate()+i);return d}
 function fmt(d){return d.toLocaleDateString("de-DE",{day:"2-digit",month:"long",year:"numeric"})}
-function allIdeas(){return [...days,...state.custom]}
+function allIdeas(){return [...days,...state.custom,...outdoorIdeas]}
 function ideaById(id){return allIdeas().find(x=>x.id===id)}
+
+const categoryIcons={"Romantik":"❤️","Zärtlichkeiten":"🥰","Oral":"👄","Anal":"🍑","BDSM":"⛓️","Spanking":"🔥","Fesseln":"🔗","Intensiv":"⚡","Massage":"💆","Selbstbefriedigung":"💋","Outdoor":"🌙"};
+function categoryTag(cat){return `<span class="tag">${categoryIcons[cat]||"•"} ${esc(cat)}</span>`;}
+function startView(){
+  const cards=[
+    ["📅","Kalender","Eure gemeinsamen Tage","kalender"],
+    ["❤️","Romantik","Zärtlichkeit und Nähe","kalender","Romantik"],
+    ["🥰","Zärtlichkeiten","Nähe und Geborgenheit","kalender","Zärtlichkeiten"],
+    ["👄","Oral","Nur nach beiderseitigem Wunsch","kalender","Oral"],
+    ["🍑","Anal","Mit Ruhe und klaren Grenzen","kalender","Anal"],
+    ["⛓️","BDSM","Vertrauen und klare Grenzen","kalender","BDSM"],
+    ["🔥","Spanking","Vorher vereinbarte Intensität","kalender","Spanking"],
+    ["🔗","Fesseln","Sicher und jederzeit lösbar","kalender","Fesseln"],
+    ["⚡","Intensiv","Nur mit klarer Absprache","kalender","Intensiv"],
+    ["💆","Massage","Entspannung und Berührung","kalender","Massage"],
+    ["💋","Selbstbefriedigung","Eigene und gemeinsame Wünsche","kalender","Selbstbefriedigung"],
+    ["🌙","Outdoor","Freiwillige Wochenendideen","outdoor"],
+    ["☆","Favoriten","Eure gemerkten Ideen","favoriten"],
+    ["🔒","Privatbereich","Persönliche Listen","listen"]
+  ];
+  return `<div class="home-hero">
+    <div class="home-kicker">Theresa · Patrick · Zeit für uns zwei</div>
+    <h1>IRON &amp; DESIRE</h1>
+    <p>Euer gemeinsamer privater Bereich für Ideen, Wünsche und besondere Momente.</p>
+    <button class="primary" onclick="goView('kalender')">Zum gemeinsamen Kalender</button>
+  </div>
+  <div class="home-actions">${cards.map(c=>`<button class="home-card" onclick="goView('${c[3]}',${c[4]?`'${c[4]}'`:"null"})">
+    <span class="home-icon">${c[0]}</span><strong>${c[1]}</strong><small>${c[2]}</small></button>`).join("")}</div>
+  <div class="panel"><h2>Schichtmodell</h2><p class="muted">Der Wochenrhythmus wechselt in dieser Reihenfolge: Nacht → Spät → Früh. Frühschicht: Mo–Fr, 06:00–14:00 · Spätschicht: Mo–Fr, 14:00–22:00 · Nachtschicht: fünf Nächte von So 22:00 bis Fr 06:00; die letzte Schicht läuft Do 22:00–Fr 06:00. Wochenendarbeit bleibt freiwillig.</p></div>
+  <p class="small" style="text-align:center;margin-top:16px">Private Inhalte werden hier nicht eingeblendet.</p>`;
+}
+function goView(v,cat=null){
+  view=v;
+  if(cat){const ix=days.findIndex(x=>x.cat===cat);if(ix>=0)selected=ix;}
+  render();
+}
+
 function render(){
 document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
 let root=document.getElementById("app");
+if(view==="start") root.innerHTML=startView();
 if(view==="kalender") root.innerHTML=calendarView();
 if(view==="listen") root.innerHTML=listView();
 if(view==="favoriten") root.innerHTML=favView();
 if(view==="vorlieben") root.innerHTML=prefsView();
 if(view==="eigene") root.innerHTML=customView();
+if(view==="outdoor") root.innerHTML=outdoorView();
 }
 function calendarView(){
 let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,1), year=first.getFullYear(),month=first.getMonth();
 let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
 let html=`<div class="panel"><div class="row"><div><div class="small">Euer gemeinsamer Kalender</div><h2>${first.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</h2></div><div><button onclick="changeMonth(-1)">‹</button> <button onclick="changeMonth(1)">›</button></div></div><div class="grid">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<div class="dayhead">${x}</div>`).join("")}`;
 for(let i=0;i<firstDay;i++)html+='<div class="day empty"></div>';
-for(let n=1;n<=count;n++){let idx=Math.round((new Date(year,month,n)-start)/86400000);let valid=idx>=0&&idx<365;html+=`<button class="day ${valid&&idx===selected?"selected":""} ${valid&&state.done.includes("d"+idx)?"done":""} ${valid&&dateAt(idx).getTime()===today.getTime()?"today":""}" ${valid?`onclick="selectDay(${idx})"`:"disabled"}>${n}</button>`}
-html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt</div></div>`;
+for(let n=1;n<=count;n++){let idx=Math.round((new Date(year,month,n)-start)/86400000);let valid=idx>=0&&idx<365;html+=`<button class="day ${valid&&idx===selected?"selected":""} ${valid&&state.done.includes("d"+idx)?"done":""} ${valid&&dateAt(idx).getTime()===today.getTime()?"today":""}" ${valid?`onclick="selectDay(${idx})"`:"disabled"}>${n}<span class="day-cat-icon">${categoryIcons[days[idx]?.cat]||""}</span></button>`}
+html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt · Gemischte 40-Tage-Folge: keine gleiche Kategorie direkt hintereinander.</div></div>`;
 let idea=days[selected];
-html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2><span class="tag">${idea.cat}</span><div class="idea"><h3>${esc(idea.text)}</h3></div><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}','Theresa')">+ Theresa-Wunschliste</button><button class="ghost" onclick="addToList('${idea.id}','Patrick')">+ Patrick-Wunschliste</button></div></div>`;
+html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2>${categoryTag(idea.cat)}<div class="idea"><h3>${esc(idea.text)}</h3></div><div class="detail-card"><span class="detail-label">👥 Wer macht was?</span><strong>${esc(idea.roles)}</strong></div><div class="detail-grid"><div class="detail-card"><span class="detail-label">⏱ Zeit einplanen</span><strong>${esc(idea.duration)}</strong></div><div class="detail-card"><span class="detail-label">⚡ Intensität</span><strong>${esc(idea.level)}</strong></div></div><div class="detail-card"><span class="detail-label">🧰 Benötigte Utensilien / Vorbereitung</span><ul class="materials">${idea.materials.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><p class="small">Die Angaben sind Vorschläge. Passt Dauer und Material gemeinsam an; Zustimmung, Grenzen und jederzeitige Pause haben Vorrang.</p><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}','Theresa')">+ Theresa-Wunschliste</button><button class="ghost" onclick="addToList('${idea.id}','Patrick')">+ Patrick-Wunschliste</button></div></div>`;
+if(d.getDay()===0||d.getDay()===6){
+html+=`<div class="panel"><div class="small">Freiwillig · nur am Wochenende als Zusatz gedacht</div><h2 style="margin-top:5px">🌙 Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Acht Vorschläge zum Durchsehen – nichts davon ist fest eingeplant. Öffentliche Orte bleiben für alle respektvoll und unauffällig.</p><button class="primary" onclick="goView('outdoor')">Wochenendideen ansehen</button></div>`;
+}
 html+=`<div class="panel"><div class="row"><h2>Fortschritt</h2><strong>${state.done.filter(x=>x[0]==="d").length} / 365</strong></div><div style="height:8px;background:#38242e;border-radius:9px;overflow:hidden"><div style="height:100%;width:${Math.min(100,state.done.filter(x=>x[0]==="d").length/365*100)}%;background:linear-gradient(90deg,var(--wine2),var(--gold))"></div></div></div>`;
 return html;
 }
-function listView(){let h='<div class="panel"><h2>Wunschlisten</h2><p class="muted">Getrennte Listen auf diesem Gerät. Ohne PIN sind sie nicht vor anderen Personen geschützt.</p></div>';for(let who of ["Theresa","Patrick"]){h+=`<div class="panel"><h2>${who}</h2>`;let arr=state.lists[who];if(!arr.length)h+='<div class="emptymsg">Noch keine Wünsche gespeichert.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem"><div class="row"><div><span class="tag">${x.cat}</span><div>${esc(x.text)}</div></div><button onclick="removeList('${who}','${id}')">Entfernen</button></div></div>`});h+='</div>'}return h}
-function favView(){let arr=state.favs;let h='<div class="panel"><h2>Favoriten</h2>';if(!arr.length)h+='<div class="emptymsg">Markiert eure Lieblingsideen im Kalender.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem"><span class="tag">${x.cat}</span><div>${esc(x.text)}</div><div class="actions"><button onclick="selectById('${id}')">Im Kalender ansehen</button><button onclick="toggleFav('${id}')">★ Entfernen</button></div></div>`});return h+'</div>'}
-function prefsView(){return `<div class="panel"><h2>Unsere Vorlieben</h2><p class="muted">Wählt aus, welche Arten von Ideen ihr im Zufallsgenerator bevorzugt. Alles kann jederzeit geändert werden.</p>${categories.map(c=>`<label class="checkline"><input type="checkbox" ${state.prefs.includes(c)?"checked":""} onchange="togglePref('${c}',this.checked)">${c}</label>`).join("")}<p class="small">Bei BDSM-Ideen gilt: vorher Grenzen, Safeword und gegenseitiges Einverständnis klären.</p></div>`}
-function customView(){return `<div class="panel"><h2>Eigene Idee hinzufügen</h2><label class="small">Kategorie</label><select id="newcat">${categories.map(c=>`<option>${c}</option>`).join("")}</select><label class="small">Eure Idee</label><textarea id="newtext" placeholder="Schreibt eure eigene Idee auf …"></textarea><button class="primary" onclick="addCustom()">Idee speichern</button></div><div class="panel"><h2>Eigene Ideen</h2>${state.custom.length?state.custom.map(x=>`<div class="listitem"><span class="tag">${x.cat}</span><div>${esc(x.text)}</div><button style="margin-top:8px" onclick="deleteCustom('${x.id}')">Löschen</button></div>`).join(""):'<div class="emptymsg">Hier erscheinen eure eigenen Ideen.</div>'}</div>`}
+function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}','Theresa')">+ Theresa</button><button onclick="addToList('${x.id}','Patrick')">+ Patrick</button></div></div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
+function listView(){let h='<div class="panel"><h2>Wunschlisten</h2><p class="muted">Getrennte Listen auf diesem Gerät. Ohne PIN sind sie nicht vor anderen Personen geschützt.</p></div>';for(let who of ["Theresa","Patrick"]){h+=`<div class="panel"><h2>${who}</h2>`;let arr=state.lists[who];if(!arr.length)h+='<div class="emptymsg">Noch keine Wünsche gespeichert.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem"><div class="row"><div>${categoryTag(x.cat)}<div>${esc(x.text)}</div></div><button onclick="removeList('${who}','${id}')">Entfernen</button></div></div>`});h+='</div>'}return h}
+function favView(){let arr=state.favs;let h='<div class="panel"><h2>Favoriten</h2>';if(!arr.length)h+='<div class="emptymsg">Markiert eure Lieblingsideen im Kalender.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><div class="actions"><button onclick="selectById('${id}')">Im Kalender ansehen</button><button onclick="toggleFav('${id}')">★ Entfernen</button></div></div>`});return h+'</div>'}
+function prefsView(){return `<div class="panel"><h2>Unsere Vorlieben</h2><p class="muted">Wählt aus, welche Arten von Ideen ihr im Zufallsgenerator bevorzugt. Alles kann jederzeit geändert werden.</p>${categories.map(c=>`<label class="checkline"><input type="checkbox" ${state.prefs.includes(c)?"checked":""} onchange="togglePref('${c}',this.checked)">${categoryIcons[c]||"•"} ${c}</label>`).join("")}<p class="small">Bei BDSM-Ideen gilt: vorher Grenzen, Safeword und gegenseitiges Einverständnis klären.</p></div>`}
+function customView(){return `<div class="panel"><h2>Eigene Idee hinzufügen</h2><label class="small">Kategorie</label><select id="newcat">${categories.map(c=>`<option>${c}</option>`).join("")}</select><label class="small">Eure Idee</label><textarea id="newtext" placeholder="Schreibt eure eigene Idee auf …"></textarea><button class="primary" onclick="addCustom()">Idee speichern</button></div><div class="panel"><h2>Eigene Ideen</h2>${state.custom.length?state.custom.map(x=>`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><button style="margin-top:8px" onclick="deleteCustom('${x.id}')">Löschen</button></div>`).join(""):'<div class="emptymsg">Hier erscheinen eure eigenen Ideen.</div>'}</div>`}
 function changeMonth(n){monthOffset+=n;render()}function selectDay(i){selected=i;monthOffset=0;render()}
 function toggleDone(id,v){state.done=v?[...new Set([...state.done,id])]:state.done.filter(x=>x!==id);save();render()}
 function toggleFav(id){state.favs=state.favs.includes(id)?state.favs.filter(x=>x!==id):[...state.favs,id];save();render()}
-function addToList(id,who){if(!state.lists[who].includes(id))state.lists[who].push(id);save();alert("Zur Wunschliste "+who+" hinzugefügt.");}
+function addToList(id,who){state.lists[who]??=[];if(!state.lists[who].includes(id))state.lists[who].push(id);save();alert("Zur Wunschliste "+who+" hinzugefügt.");}
 function removeList(who,id){state.lists[who]=state.lists[who].filter(x=>x!==id);save();render()}
 function togglePref(c,v){state.prefs=v?[...state.prefs,c]:state.prefs.filter(x=>x!==c);save()}
 function randomIdea(){let pool=days.filter(x=>state.prefs.includes(x.cat));if(!pool.length)pool=days;let x=pool[Math.floor(Math.random()*pool.length)];selected=x.day;monthOffset=0;render()}
-function selectById(id){let x=ideaById(id);if(x&&x.day!==undefined){selected=x.day;view="kalender";render()}}
+function selectById(id){let x=ideaById(id);if(x&&x.day!==undefined){selected=x.day;view="kalender";render()}else if(x&&x.cat==="Outdoor"){view="outdoor";render()}}
 function addCustom(){let t=document.getElementById("newtext").value.trim();if(!t){alert("Bitte zuerst eine Idee eingeben.");return}state.custom.push({id:"c"+Date.now(),cat:document.getElementById("newcat").value,text:t});save();render()}
 function deleteCustom(id){state.custom=state.custom.filter(x=>x.id!==id);state.favs=state.favs.filter(x=>x!==id);for(let w of Object.keys(state.lists))state.lists[w]=state.lists[w].filter(x=>x!==id);save();render()}
 document.getElementById("tabs").addEventListener("click",e=>{let b=e.target.closest("button[data-view]");if(b){view=b.dataset.view;render()}});
