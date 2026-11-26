@@ -250,6 +250,33 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .toy-categories input,.toy-option input{width:auto}
 .toy-form label[for]{display:block;margin:12px 0 4px}
 </style>
+<style>
+#siteHeader .brand {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 8px;
+  padding: 7px 24px;
+}
+#siteHeader .brand::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid #ff7587;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #ff526b55;
+  opacity: .22;
+  pointer-events: none;
+  animation: brand-outline-pulse 4.8s ease-in-out infinite;
+}
+@keyframes brand-outline-pulse {
+  0%, 100% { opacity: .15; }
+  50% { opacity: .35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #siteHeader .brand::after { animation: none; }
+}
+</style>
 </head>
 <body>
 <header id="siteHeader"><div class="brand">LOVE <span style="color:#ff334f">&amp;</span> PAIN</div><div class="sub">ZEIT FÜR UNS ZWEI</div></header>
