@@ -333,6 +333,19 @@ html {
   #siteHeader .brand::after { animation: none; }
 }
 </style>
+<style>
+body.app-signed-in { background: #000; isolation: isolate; }
+body.app-signed-in::before {
+  content: "";
+  padding: 0;
+  opacity: 1;
+  transform: none;
+  background: #000 url("./love-and-pain-background.webp") center / auto 100% no-repeat;
+}
+@media (max-width: 620px) {
+  body.app-signed-in::before { background-size: 100% 100%; }
+}
+</style>
 </head>
 <body>
 <header id="siteHeader"><div class="brand">LOVE <span style="color:#ff334f">&amp;</span> PAIN</div><div class="sub">ZEIT FÜR UNS ZWEI</div></header>
@@ -1688,6 +1701,7 @@ render();
   }
 
   function showSignedIn(user) {
+    document.body.classList.add("app-signed-in");
     recoveryForm.hidden = true;
     loginForm.hidden = false;
     passwordInput.value = "";
@@ -1718,6 +1732,7 @@ render();
   }
 
   function showSignedOut() {
+    document.body.classList.remove("app-signed-in");
     ++accessAttempt;
     clearPrivateData();
     recoverySession = false;
