@@ -171,19 +171,24 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 #authGate input{margin:5px 0 10px}
 #authMessage{min-height:22px;margin-top:10px;color:#ff9aa4;font-size:13px}
 #authActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-#accountBar{display:none;max-width:980px;margin:auto;padding:8px 14px;text-align:right}
-.account-menu{display:inline-block;position:relative;z-index:5;text-align:left}
-.account-menu summary{display:flex;align-items:center;gap:8px;padding:4px 9px 4px 4px;
-  border:1px solid #70404b;border-radius:999px;background:#1c1017;cursor:pointer;list-style:none}
-.account-menu summary::-webkit-details-marker{display:none}
-.account-menu summary:focus-visible{outline:2px solid #f4ce76;outline-offset:3px}
-.account-avatar{display:grid;place-items:center;border-radius:50%;width:42px;height:42px;
-  background:#351921;border:1px solid #9b495b;font-size:23px;line-height:1}
-.account-dots{font-size:22px;line-height:1}
-.account-menu-options{position:absolute;right:0;top:calc(100% + 6px);min-width:170px;
-  display:grid;gap:4px;padding:6px;background:#231219;border:1px solid #70404b;border-radius:12px;
-  box-shadow:0 8px 24px #0009}
-.account-menu-options button{text-align:left;min-height:44px}
+#accountBar{display:none;max-width:760px;margin:12px auto 0;padding:0 14px;align-items:center;justify-content:space-between;gap:12px}
+.account-avatar{display:grid;place-items:center;border-radius:50%;width:44px;height:44px;
+  background:#260e17;border:1px solid #9b495b;font-size:23px;line-height:1}
+#accountAvatar{position:relative;--avatar-ring:#ff526e;--avatar-glow:#ff345566}
+#accountAvatar[data-online="true"]{--avatar-ring:#65e6a0;--avatar-glow:#40d78266}
+#accountAvatar::after{content:"";position:absolute;inset:-2px;border:2px solid var(--avatar-ring);
+  border-radius:50%;box-shadow:0 0 10px var(--avatar-glow);pointer-events:none;
+  animation:avatar-ring-pulse 2.8s ease-in-out infinite}
+@keyframes avatar-ring-pulse{0%,100%{opacity:.56}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){#accountAvatar::after{animation:none}}
+.profile-menu-button{min-width:44px;min-height:44px;display:grid;place-items:center}
+.profile-menu-icon,.profile-menu-icon::before,.profile-menu-icon::after{
+  display:block;width:19px;height:2px;border-radius:2px;background:currentColor}
+.profile-menu-icon{position:relative}
+.profile-menu-icon::before,.profile-menu-icon::after{content:"";position:absolute;left:0}
+.profile-menu-icon::before{top:-6px}
+.profile-menu-icon::after{top:6px}
+.profile-logout{margin-top:24px}
 .profile-area{padding:0 4px}
 .profile-grid{display:grid;grid-template-columns:1fr;gap:14px;margin:16px 0}
 @media(min-width:620px){.profile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -198,7 +203,6 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .profile-memories textarea{display:block;width:100%;margin:6px 0 10px}
 .memory-entry{border-top:1px solid var(--line);padding:12px 0}
 .memory-entry p{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 10px}
-.account-menu:not([open]) .account-menu-options{display:none}
 .profile-avatar{width:64px;height:64px;font-size:35px}
 .avatar-select{display:block;width:min(100%,300px);min-height:44px;appearance:none;padding-right:36px;
   background:#1e1017 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23f3b6c5' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 12px center}
@@ -315,7 +319,13 @@ html {
   display: inline-block;
   max-width: 100%;
   margin-top: 8px;
-  padding: 7px 24px;
+  padding: 8px clamp(12px, 5vw, 34px);
+  font-family: Georgia, serif;
+  font-size: clamp(28px, 7.8vw, 52px);
+  letter-spacing: .085em;
+  line-height: 1.12;
+  color: #fff0f0;
+  text-shadow: 0 0 10px #e93a5966, 0 0 28px #9b133b88;
 }
 #siteHeader .brand::after {
   content: "";
@@ -846,6 +856,11 @@ function previewProfileToy(id) {
   document.getElementById("profileToyPhoto").innerHTML = profileToyPhoto(id);
 }
 
+async function signOutOfApp() {
+  const {error} = await authClient.auth.signOut();
+  if (error) alert("Abmelden fehlgeschlagen: " + error.message);
+}
+
 function profileView() {
   const day = dateKey(today);
   const own = state.profileFields.filter(entry => entry.user_id === account.userId);
@@ -874,6 +889,7 @@ function profileView() {
     </form>
     <section id="profileMemories" class="panel profile-memories">${memoriesView()}</section>
     ${sharedList ? `<section class="panel profile-shared"><h3>Mit mir geteilt</h3><dl>${sharedList}</dl></section>` : ""}
+    <button class="ghost profile-logout" type="button" onclick="signOutOfApp()">Abmelden</button>
   </section>`;
 }
 
@@ -1712,27 +1728,30 @@ render();
     authGate.style.display = "none";
     siteHeader.style.display = "block";
     appMain.style.display = "block";
-    accountBar.style.display = "block";
+    accountBar.style.display = "flex";
     account.avatar = profileAvatar(user.user_metadata?.profile_avatar);
-    accountBar.innerHTML = `<details class="account-menu">
-      <summary aria-label="Kontomenü öffnen">
-        <span class="account-avatar" id="accountAvatar" aria-hidden="true">${account.avatar}</span>
-        <span class="account-dots" aria-hidden="true">⋯</span>
-      </summary>
-      <div class="account-menu-options">
-        <button id="profileButton" type="button">Mein Bereich</button>
-        <button id="logoutButton" type="button">Abmelden</button>
-      </div>
-    </details>`;
+    accountBar.innerHTML = `<span id="accountAvatar" class="account-avatar" role="img">${account.avatar}</span>
+      <button id="profileButton" class="profile-menu-button" type="button" aria-label="Mein Bereich öffnen">
+        <span class="profile-menu-icon" aria-hidden="true"></span>
+      </button>`;
+    updateAvatarConnection();
     document.getElementById("profileButton").addEventListener("click", () => {
-      accountBar.querySelector("details").open = false;
       goView("profil");
-    });
-    document.getElementById("logoutButton").addEventListener("click", async () => {
-      const { error } = await authClient.auth.signOut();
-      if (error) alert("Abmelden fehlgeschlagen: " + error.message);
+      document.getElementById("profileAvatarSelect")?.focus({preventScroll:true});
     });
   }
+
+  function updateAvatarConnection() {
+    const avatar = document.getElementById("accountAvatar");
+    if (!avatar) return;
+    const status = navigator.onLine ? "Online" : "Offline";
+    avatar.dataset.online = String(navigator.onLine);
+    avatar.title = status;
+    avatar.setAttribute("aria-label", `Profil-Smiley · ${status}`);
+  }
+
+  window.addEventListener("online", updateAvatarConnection);
+  window.addEventListener("offline", updateAvatarConnection);
 
   function showSignedOut() {
     document.body.classList.remove("app-signed-in");
