@@ -185,6 +185,15 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
   box-shadow:0 8px 24px #0009}
 .account-menu-options button{text-align:left;min-height:44px}
 .profile-area{padding:0 4px}
+.profile-grid{display:grid;grid-template-columns:1fr;gap:14px;margin:16px 0}
+@media(min-width:620px){.profile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.profile-grid fieldset{min-width:0;margin:0;padding:14px;border:1px solid #693041;border-radius:16px;background:#1e1017}
+.profile-grid legend{padding:0 6px;font-weight:700}
+.profile-grid input[type="text"],.profile-grid textarea,.profile-grid select{width:100%;min-height:44px}
+.profile-grid .toy-option{font-size:14px}
+.profile-area .toy-photo-frame{margin-top:8px}
+.profile-shared dd{margin:0 0 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.profile-shared dt{font-weight:700}
 .account-menu:not([open]) .account-menu-options{display:none}
 .profile-avatar{width:64px;height:64px;font-size:35px}
 .avatar-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
@@ -404,13 +413,14 @@ async function loadPrivateData(userId) {
   if (!catalog) return null;
 
   const coupleId = catalog.couple_id;
-  const [progress, personal, toys, toyChoices, membership, periods] = await Promise.all([
+  const [progress, personal, toys, toyChoices, membership, periods, profile] = await Promise.all([
     authClient.from("love_progress").select("idea_id").eq("couple_id", coupleId),
     authClient.from("love_personal").select("kind, item_id, content").eq("user_id", userId),
     authClient.from("love_toys").select("id, name, categories, photo").eq("couple_id", coupleId).order("name"),
     authClient.from("love_toy_choices").select("idea_id, toy_id").eq("couple_id", coupleId),
     authClient.from("couple_members").select("period_tracking_enabled").eq("user_id", userId).eq("couple_id", coupleId).maybeSingle(),
-    authClient.from("love_periods").select("id, user_id, starts_on, ends_on, shared").eq("couple_id", coupleId).order("starts_on", {ascending:false})
+    authClient.from("love_periods").select("id, user_id, starts_on, ends_on, shared").eq("couple_id", coupleId).order("starts_on", {ascending:false}),
+    authClient.from("love_profile_fields").select("user_id, field, value, shared, mood_on").eq("couple_id", coupleId)
   ]);
   if (progress.error) throw progress.error;
   if (personal.error) throw personal.error;
@@ -418,9 +428,10 @@ async function loadPrivateData(userId) {
   if (toyChoices.error) throw toyChoices.error;
   if (membership.error) throw membership.error;
   if (periods.error) throw periods.error;
+  if (profile.error) throw profile.error;
   return {
     catalog, progress: progress.data, personal: personal.data, toys: toys.data, toyChoices: toyChoices.data,
-    canTrackPeriod: membership.data?.period_tracking_enabled === true, periods: periods.data
+    canTrackPeriod: membership.data?.period_tracking_enabled === true, periods: periods.data, profileFields: profile.data
   };
 }
 
@@ -431,7 +442,7 @@ function startPrivateData(userId, data) {
   days = Array.from({length:365}, (_, i) => ({ ...ideas[i % ideas.length], id:"d"+i, day:i }));
   outdoorIdeas = outdoor;
   selected = Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
-  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], ratings: new Map(), toys: data.toys, toyChoices: data.toyChoices, periods: data.periods };
+  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], ratings: new Map(), toys: data.toys, toyChoices: data.toyChoices, periods: data.periods, profileFields: data.profileFields };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
     if (kind === "wish") state.wishes.push(id);
@@ -554,10 +565,76 @@ function profileAvatar(value) {
   return avatarOptions.some(([emoji]) => emoji === value) ? value : avatarOptions[0][0];
 }
 
+const profileFields = [
+  ["toy", "Lieblings-Toy", "Aus der Galerie wählen"],
+  ["position", "Lieblingsstellung", "In deinen eigenen Worten"],
+  ["mood", "Meine Stimmung heute", "Stimmung wählen"],
+  ["repeat", "Würde ich gern wiederholen", "Aktivität aus dem Kalender wählen"],
+  ["wishes", "Würde ich gern ausprobieren", "Was möchtest du ausprobieren?"],
+  ["boundaries", "Heute oder generell lieber nicht", "Was passt für dich gerade nicht?"]
+];
+const moodChoices = ["Zärtlich", "Verspielt", "Intensiv", "Heute lieber Pause"];
+
+function profileOptions(field) {
+  if (field === "toy") return state.toys.map(toy => [toy.id, toy.name]);
+  if (field === "mood") return moodChoices.map(mood => [mood, mood]);
+  if (field === "repeat") return releasedDays().map(idea => {
+    const title = String(idea.text).split(" – ")[0].slice(0, 100);
+    return [idea.id, `${fmt(dateAt(idea.day))} · ${title}`];
+  });
+  return null;
+}
+
+function currentProfileEntry(entry, day) {
+  return entry && (entry.field !== "mood" || entry.mood_on === day) ? entry : null;
+}
+
+function profileFieldView([field, label, placeholder], entry) {
+  const value = entry?.value || "";
+  const options = profileOptions(field);
+  let control;
+  if (options) {
+    const selected = options.some(([key]) => key === value);
+    const unavailable = value && !selected
+      ? `<option value="${esc(value)}" selected>Auswahl derzeit nicht verfügbar</option>` : "";
+    control = `<select name="${field}" aria-label="${label}" ${field === "toy" ? 'onchange="previewProfileToy(this.value)"' : ""}>
+      <option value="">${placeholder}</option>${unavailable}
+      ${options.map(([key, name]) => `<option value="${esc(key)}" ${key === value ? "selected" : ""}>${esc(name)}</option>`).join("")}
+    </select>`;
+  } else if (field === "position") {
+    control = `<input type="text" name="${field}" aria-label="${label}" maxlength="600" placeholder="${placeholder}" value="${esc(value)}">`;
+  } else {
+    control = `<textarea name="${field}" aria-label="${label}" rows="2" maxlength="600" placeholder="${placeholder}">${esc(value)}</textarea>`;
+  }
+  return `<fieldset><legend>${label}</legend>${control}
+    ${field === "toy" ? `<div id="profileToyPhoto">${profileToyPhoto(value)}</div>` : ""}
+    <label class="toy-option"><input type="checkbox" name="${field}_shared" ${entry?.shared ? "checked" : ""}>
+      Mit meinem Partnerkonto teilen</label></fieldset>`;
+}
+
+function profileToyPhoto(id) {
+  const toy = state.toys.find(item => item.id === id);
+  return toy ? toyPhoto(toy) : "";
+}
+
+function previewProfileToy(id) {
+  document.getElementById("profileToyPhoto").innerHTML = profileToyPhoto(id);
+}
+
 function profileView() {
+  const day = dateKey(today);
+  const own = state.profileFields.filter(entry => entry.user_id === account.userId);
+  const shared = state.profileFields.filter(entry => entry.user_id !== account.userId && entry.shared && currentProfileEntry(entry, day));
+  const sharedList = shared.map(entry => {
+    const field = profileFields.find(([key]) => key === entry.field);
+    if (!field) return "";
+    const options = profileOptions(entry.field);
+    const value = options ? options.find(([key]) => key === entry.value)?.[1] : entry.value;
+    return value ? `<dt>${field[1]}</dt><dd>${esc(value)}${entry.field === "toy" ? profileToyPhoto(entry.value) : ""}</dd>` : "";
+  }).join("");
   return `<section class="profile-area">
     <h2>Mein Bereich</h2>
-    <div class="account-avatar profile-avatar" aria-hidden="true">${account.avatar}</div>
+    <div class="account-avatar profile-avatar" id="profileAvatarPreview" aria-hidden="true">${account.avatar}</div>
     <p>Wähle deinen Smiley.</p>
     <div class="avatar-choices" role="group" aria-label="Profil-Smiley">
       ${avatarOptions.map(([emoji, label], index) => `<button type="button"
@@ -565,7 +642,57 @@ function profileView() {
         onclick="saveProfileAvatar(${index})">${emoji}</button>`).join("")}
     </div>
     <p id="avatarStatus" role="status"></p>
+    <form onsubmit="saveProfileFields(event)">
+      <p>Alles ist freiwillig und zunächst privat. Du kannst jedes Feld einzeln freigeben.</p>
+      <div class="profile-grid">${profileFields.map(field =>
+        profileFieldView(field, currentProfileEntry(own.find(entry => entry.field === field[0]), day))).join("")}</div>
+      <button type="submit" class="primary">Speichern</button>
+      <p id="profileStatus" role="status"></p>
+    </form>
+    ${sharedList ? `<section class="panel profile-shared"><h3>Mit mir geteilt</h3><dl>${sharedList}</dl></section>` : ""}
   </section>`;
+}
+
+async function saveProfileFields(event) {
+  event.preventDefault();
+  if (!account || pending === account) return;
+  const active = account;
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const status = form.querySelector("#profileStatus");
+  const values = new FormData(form);
+  const day = dateKey(berlinCalendarDate());
+  const rows = [];
+  for (const [field] of profileFields) {
+    const previous = state.profileFields.find(entry => entry.user_id === active.userId && entry.field === field);
+    const current = currentProfileEntry(previous, day);
+    const value = String(values.get(field) ?? "").trim();
+    const shared = Boolean(value && values.has(field + "_shared"));
+    if ((current?.value || "") === value && Boolean(current?.shared) === shared) continue;
+    rows.push({couple_id: active.coupleId, user_id: active.userId, field, value, shared, mood_on: field === "mood" ? day : null});
+  }
+  if (!rows.length) {
+    status.textContent = "Keine Änderungen zum Speichern.";
+    return;
+  }
+  pending = active;
+  button.disabled = true;
+  try {
+    const {error} = await authClient.from("love_profile_fields").upsert(rows);
+    if (active !== account) return;
+    if (error) throw error;
+    const changed = new Set(rows.map(row => row.field));
+    state.profileFields = [...state.profileFields.filter(entry => entry.user_id !== active.userId || !changed.has(entry.field)), ...rows];
+    if (view === "profil") {
+      render();
+      document.getElementById("profileStatus").textContent = "Gespeichert.";
+    }
+  } catch {
+    status.textContent = "Speichern fehlgeschlagen. Bitte versuche es erneut.";
+  } finally {
+    if (pending === active) pending = null;
+    button.disabled = false;
+  }
 }
 
 async function saveProfileAvatar(index) {
@@ -583,9 +710,11 @@ async function saveProfileAvatar(index) {
     active.avatar = avatar;
     document.getElementById("accountAvatar").textContent = avatar;
     if (view === "profil") {
-      render();
+      document.getElementById("profileAvatarPreview").textContent = avatar;
       document.getElementById("avatarStatus").textContent = "Smiley gespeichert.";
-      document.querySelector(`[data-avatar-index="${index}"]`)?.focus();
+      document.querySelectorAll("[data-avatar-index]").forEach(choice => {
+        choice.setAttribute("aria-pressed", String(Number(choice.dataset.avatarIndex) === index));
+      });
     }
   } catch {
     status.textContent = "Der Smiley konnte nicht gespeichert werden. Versuche es erneut.";
