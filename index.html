@@ -217,6 +217,10 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 
 </style>
 <style>
+.activity-rating{margin-top:14px}
+.rating-stars{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.rating-stars button{min-width:44px;min-height:44px;padding:4px;font-size:1.4rem;color:#f4ce76}
+.rating-stars button[aria-pressed="true"]{border-color:#f4ce76;background:#492c32}
 .day.future:disabled{opacity:.75;cursor:default}
 .day.period{box-shadow:inset 0 -4px #f17b96}
 .day.period:disabled{opacity:.65}
@@ -349,10 +353,11 @@ function startPrivateData(userId, data) {
   days = Array.from({length:365}, (_, i) => ({ ...ideas[i % ideas.length], id:"d"+i, day:i }));
   outdoorIdeas = outdoor;
   selected = Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
-  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], toys: data.toys, toyChoices: data.toyChoices, periods: data.periods };
+  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], ratings: new Map(), toys: data.toys, toyChoices: data.toyChoices, periods: data.periods };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
     if (kind === "wish") state.wishes.push(id);
+    if (kind === "rating") state.ratings.set(id, content);
     if (kind === "custom") state.custom.push({ ...content, id });
     if (kind === "preference" && content === false) state.prefs = state.prefs.filter(cat => cat !== id);
   }
@@ -711,6 +716,30 @@ function removePeriod(id) {
   });
 }
 
+function ratingView(ideaId) {
+  const rating = state.ratings.get(ideaId) || 0;
+  const id = esc(ideaId);
+  const stars = [1, 2, 3, 4, 5].map(score => `<button type="button"
+    aria-label="${score} von 5 Sternen" aria-pressed="${score === rating}"
+    data-activity="${id}" data-score="${score}"
+    onclick="rateActivity(this.dataset.activity, Number(this.dataset.score))">${score <= rating ? "★" : "☆"}</button>`).join("");
+  return `<section class="activity-rating">
+    <div class="detail-label">Meine Bewertung</div>
+    <div class="rating-stars" role="group" aria-label="Meine Bewertung">${stars}</div>
+    <span class="small">${rating ? `${rating} von 5 Sternen` : "Noch nicht bewertet"}</span>
+    ${rating ? `<button class="ghost" type="button" data-activity="${id}"
+      onclick="rateActivity(this.dataset.activity, 0)">Bewertung entfernen</button>` : ""}
+  </section>`;
+}
+
+function rateActivity(id, score) {
+  if (!account || !ideaById(id) || !Number.isInteger(score) || score < 0 || score > 5) return;
+  saveChange(() => saveItem("rating", id, score > 0, score), () => {
+    if (score) state.ratings.set(id, score);
+    else state.ratings.delete(id);
+  });
+}
+
 function calendarView(){
 let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,1), year=first.getFullYear(),month=first.getMonth();
 let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
@@ -733,6 +762,7 @@ html+=`</div><div class="small" style="margin-top:10px">Heute und vergangene Tag
 if (!isReleased(selected)) return html + periodView(d);
 let idea=days[selected];
 html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2>${categoryTag(idea.cat)}<div class="idea"><h3>${esc(idea.text)}</h3></div><div class="detail-card"><span class="detail-label">👥 Wer macht was?</span><strong>${esc(idea.roles)}</strong></div><div class="detail-grid"><div class="detail-card"><span class="detail-label">⏱ Zeit einplanen</span><strong>${esc(idea.duration)}</strong></div><div class="detail-card"><span class="detail-label">⚡ Intensität</span><strong>${esc(idea.level)}</strong></div></div><div class="detail-card"><span class="detail-label">🧰 Benötigte Utensilien / Vorbereitung</span><ul class="materials">${idea.materials.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><p class="small">Die Angaben sind Vorschläge. Passt Dauer und Material gemeinsam an; Zustimmung, Grenzen und jederzeitige Pause haben Vorrang.</p><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}')">+ Meine Wunschliste</button></div></div>`;
+html+=`<div class="panel">${ratingView(idea.id)}</div>`;
 html+=toyChoicesView(idea);
 html+=periodView(d);
 if(d.getDay()===0||d.getDay()===6){
@@ -741,7 +771,7 @@ html+=`<div class="panel"><div class="small">Freiwillig · nur am Wochenende als
 html+=`<div class="panel"><div class="row"><h2>Fortschritt</h2><strong>${state.done.filter(x=>x[0]==="d").length} / 365</strong></div><div style="height:8px;background:#38242e;border-radius:9px;overflow:hidden"><div style="height:100%;width:${Math.min(100,state.done.filter(x=>x[0]==="d").length/365*100)}%;background:linear-gradient(90deg,var(--wine2),var(--gold))"></div></div></div>`;
 return html;
 }
-function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}')">+ Meine Wunschliste</button></div>${toyChoicesView(x)}</div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
+function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}')">+ Meine Wunschliste</button></div>${ratingView(x.id)}${toyChoicesView(x)}</div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
 function listView(){
   const entries = state.wishes.map(ideaById).filter(Boolean);
   return `<div class="panel"><h2>Meine Wunschliste</h2>${entries.length ? entries.map(idea =>
@@ -751,7 +781,7 @@ function listView(){
 }
 function favView(){let arr=state.favs.filter(ideaById);let h='<div class="panel"><h2>Favoriten</h2>';if(!arr.length)h+='<div class="emptymsg">Markiert eure Lieblingsideen im Kalender.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><div class="actions"><button onclick="selectById('${id}')">Im Kalender ansehen</button><button onclick="toggleFav('${id}')">★ Entfernen</button></div></div>`});return h+'</div>'}
 function prefsView(){return `<div class="panel"><h2>Unsere Vorlieben</h2><p class="muted">Wählt aus, welche Arten von Ideen ihr im Zufallsgenerator bevorzugt. Alles kann jederzeit geändert werden.</p>${categories.map(c=>`<label class="checkline"><input type="checkbox" ${state.prefs.includes(c)?"checked":""} onchange="togglePref('${c}',this.checked)">${categoryIcons[c]||"•"} ${c}</label>`).join("")}<p class="small">Bei BDSM-Ideen gilt: vorher Grenzen, Safeword und gegenseitiges Einverständnis klären.</p></div>`}
-function customView(){return `<div class="panel"><h2>Eigene Idee hinzufügen</h2><label class="small">Kategorie</label><select id="newcat">${categories.map(c=>`<option>${c}</option>`).join("")}</select><label class="small">Eure Idee</label><textarea id="newtext" placeholder="Schreibt eure eigene Idee auf …"></textarea><button class="primary" onclick="addCustom()">Idee speichern</button></div><div class="panel"><h2>Eigene Ideen</h2>${state.custom.length?state.custom.map(x=>`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><button style="margin-top:8px" onclick="deleteCustom('${x.id}')">Löschen</button></div>`).join(""):'<div class="emptymsg">Hier erscheinen eure eigenen Ideen.</div>'}</div>`}
+function customView(){return `<div class="panel"><h2>Eigene Idee hinzufügen</h2><label class="small">Kategorie</label><select id="newcat">${categories.map(c=>`<option>${c}</option>`).join("")}</select><label class="small">Eure Idee</label><textarea id="newtext" placeholder="Schreibt eure eigene Idee auf …"></textarea><button class="primary" onclick="addCustom()">Idee speichern</button></div><div class="panel"><h2>Eigene Ideen</h2>${state.custom.length?state.custom.map(x=>`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><button style="margin-top:8px" onclick="deleteCustom('${x.id}')">Löschen</button>${ratingView(x.id)}</div>`).join(""):'<div class="emptymsg">Hier erscheinen eure eigenen Ideen.</div>'}</div>`}
 function changeMonth(n){monthOffset+=n;render()}
 function selectDay(i) {
   today = berlinCalendarDate();
@@ -812,6 +842,7 @@ function deleteCustom(id) {
     state.custom = state.custom.filter(idea => idea.id !== id);
     state.favs = state.favs.filter(item => item !== id);
     state.wishes = state.wishes.filter(item => item !== id);
+    state.ratings.delete(id);
   });
 }
 document.getElementById("tabs").addEventListener("click",e=>{let b=e.target.closest("button[data-view]");if(b) goView(b.dataset.view)});
