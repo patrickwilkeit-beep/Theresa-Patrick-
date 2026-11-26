@@ -184,6 +184,8 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
   display:grid;gap:4px;padding:6px;background:#231219;border:1px solid #70404b;border-radius:12px;
   box-shadow:0 8px 24px #0009}
 .account-menu-options button{text-align:left;min-height:44px}
+.profile-area{padding:0 4px}
+.account-menu:not([open]) .account-menu-options{display:none}
 .profile-avatar{width:64px;height:64px;font-size:35px}
 .avatar-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .avatar-choices button{min-width:48px;min-height:48px;font-size:24px;padding:6px}
@@ -534,7 +536,7 @@ function profileAvatar(value) {
 }
 
 function profileView() {
-  return `<section class="panel">
+  return `<section class="profile-area">
     <h2>Mein Bereich</h2>
     <div class="account-avatar profile-avatar" aria-hidden="true">${account.avatar}</div>
     <p>Wähle deinen Smiley.</p>
