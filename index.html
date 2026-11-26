@@ -200,9 +200,9 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .memory-entry p{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 10px}
 .account-menu:not([open]) .account-menu-options{display:none}
 .profile-avatar{width:64px;height:64px;font-size:35px}
-.avatar-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.avatar-choices button{min-width:48px;min-height:48px;font-size:24px;padding:6px}
-.avatar-choices button[aria-pressed="true"]{border-color:#f4ce76;background:#492c32}
+.avatar-select{display:block;width:min(100%,300px);min-height:44px;appearance:none;padding-right:36px;
+  background:#1e1017 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23f3b6c5' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 12px center}
+.avatar-select-label{display:block;margin:8px 0 4px}
 
 
 /* LOVE & PAIN – persönliche Einstiegsseite mit dem Original-Herzmotiv */
@@ -661,12 +661,10 @@ function profileView() {
   return `<section class="profile-area">
     <h2>Mein Bereich</h2>
     <div class="account-avatar profile-avatar" id="profileAvatarPreview" aria-hidden="true">${account.avatar}</div>
-    <p>Wähle deinen Smiley.</p>
-    <div class="avatar-choices" role="group" aria-label="Profil-Smiley">
-      ${avatarOptions.map(([emoji, label], index) => `<button type="button"
-        aria-label="${label}" aria-pressed="${emoji === account.avatar}" data-avatar-index="${index}"
-        onclick="saveProfileAvatar(${index})">${emoji}</button>`).join("")}
-    </div>
+    <label class="avatar-select-label" for="profileAvatarSelect">Profil-Smiley</label>
+    <select id="profileAvatarSelect" class="avatar-select" onchange="saveProfileAvatar(this)">
+      ${avatarOptions.map(([emoji, label]) => `<option value="${emoji}" ${emoji === account.avatar ? "selected" : ""}>${emoji} ${label}</option>`).join("")}
+    </select>
     <p id="avatarStatus" role="status"></p>
     <form onsubmit="saveProfileFields(event)">
       <p>Alles ist freiwillig und zunächst privat. Du kannst jedes Feld einzeln freigeben.</p>
@@ -821,12 +819,17 @@ async function removeMemory(id) {
   }
 }
 
-async function saveProfileAvatar(index) {
-  if (!account || pending === account || !avatarOptions[index]) return;
+async function saveProfileAvatar(select) {
+  if (!account) return;
   const active = account;
-  const [avatar] = avatarOptions[index];
+  const avatar = profileAvatar(select.value);
+  if (pending === active) {
+    select.value = active.avatar;
+    return;
+  }
   if (active.avatar === avatar) return;
   pending = active;
+  select.disabled = true;
   const status = document.getElementById("avatarStatus");
   status.textContent = "Smiley wird gespeichert …";
   try {
@@ -837,15 +840,15 @@ async function saveProfileAvatar(index) {
     document.getElementById("accountAvatar").textContent = avatar;
     if (view === "profil") {
       document.getElementById("profileAvatarPreview").textContent = avatar;
+      document.getElementById("profileAvatarSelect").value = avatar;
       document.getElementById("avatarStatus").textContent = "Smiley gespeichert.";
-      document.querySelectorAll("[data-avatar-index]").forEach(choice => {
-        choice.setAttribute("aria-pressed", String(Number(choice.dataset.avatarIndex) === index));
-      });
     }
   } catch {
+    select.value = active.avatar;
     status.textContent = "Der Smiley konnte nicht gespeichert werden. Versuche es erneut.";
   } finally {
     if (pending === active) pending = null;
+    select.disabled = false;
   }
 }
 
