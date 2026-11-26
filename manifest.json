@@ -1,0 +1,9 @@
+{
+  "name": "Love & Pain",
+  "short_name": "Love & Pain",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#100b0f",
+  "theme_color": "#160d12",
+  "description": "Privater Bereich"
+}
