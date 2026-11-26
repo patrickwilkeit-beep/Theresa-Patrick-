@@ -271,6 +271,13 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .toy-categories{display:flex;flex-wrap:wrap;gap:4px 16px;margin:12px 0}
 .toy-categories label,.toy-option{display:flex;align-items:center;gap:8px;padding:8px 0}
 .toy-categories input,.toy-option input{width:auto}
+.games-area .home-card{height:auto;min-height:144px}
+.game-settings select{width:auto;min-width:145px}
+.game-prompt{padding:16px 18px;margin:14px 0;border:1px solid #803549;border-radius:14px;background:#14090e;box-shadow:0 7px 16px -12px #ff4c72}
+.game-prompt p{margin:0;font-size:clamp(17px,4vw,22px);line-height:1.5}
+.game-prompt small{color:#edabbf}
+.game-prompt small+p{margin-top:6px}
+.game-actions{margin-top:14px}
 .toy-picker{margin-top:10px}
 .toy-picker summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
   min-height:44px;padding:8px 12px;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#1e1017;list-style:none}
@@ -390,6 +397,7 @@ html {
 <button class="tab" data-view="kategorien">Kategorien</button>
 <button class="tab" data-view="kalender">Kalender</button><button class="tab" data-view="outdoor">🌙 Outdoor</button><button class="tab" data-view="listen">Wunschlisten</button><button class="tab" data-view="favoriten">Favoriten</button><button class="tab" data-view="vorlieben">Vorlieben</button><button class="tab" data-view="eigene">Eigene Ideen</button>
 <button class="tab" data-view="toys">Toys-Galerie</button>
+<button class="tab" data-view="spiele">Spiele</button>
 </nav>
 <section id="app"></section>
 <footer id="appFooter"></footer>
@@ -488,6 +496,8 @@ function startPrivateData(userId, data) {
 function clearPrivateData() {
   account = state = null;
   planDraft = null;
+  gameCards = gameRound = null;
+  gameLoading = gameLoadError = false;
   editingToyId = editingPeriodId = editingMemoryId = null;
   days = [];
   outdoorIdeas = [];
@@ -570,6 +580,10 @@ function categoriesView() {
 function goView(v,cat=null){
   today = berlinCalendarDate();
   view=v;
+  if (v === "spiele" && !gameCards && !gameLoading) {
+    void loadGameCards();
+    return;
+  }
   if (v === "kalender") {
     const matching = cat && releasedDays().findLast(idea => idea.cat === cat);
     selected = matching ? matching.day : Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
@@ -595,6 +609,7 @@ if(view==="eigene") root.innerHTML=customView();
 if(view==="outdoor") root.innerHTML=outdoorView();
 if(view==="toys") root.innerHTML=toyGalleryView();
 if(view==="profil") root.innerHTML=profileView();
+if(view==="spiele") root.innerHTML=gamesView();
 for (const picker of root.querySelectorAll("details[data-toy-picker]")) {
   if (!openPickers.has(picker.dataset.toyPicker)) continue;
   picker.open = true;
@@ -604,6 +619,157 @@ for (const picker of root.querySelectorAll("details[data-toy-picker]")) {
   }
 }
 }
+const games = {
+  truth: ["Wahrheit oder Pflicht", "😈", "Wähle eine Frage oder eine Aufgabe. Ihr seid abwechselnd dran."],
+  either: ["Lieber dies oder das?", "💋", "Ihr wählt beide spontan. Wenn ihr verschieden antwortet, erzählt euch, was euch daran reizt."],
+  never: ["Ich hab noch nie", "🥀", "Lest den Satz laut vor und antwortet beide mit „Schon mal“ oder „Noch nie“. Erzählen ist freiwillig."],
+  quiz: ["Wie gut kennst du mich?", "🖤", "Die Person am Zug rät, was ihr Schatz antworten würde. Danach löst ihr auf und gebt bei einem Treffer einen Punkt."],
+  boundaries: ["Ja, Nein, Vielleicht", "🔐", "Gebt beide eure Einschätzung ab. Eine Antwort ist eine Momentaufnahme. Für eine echte Aktivität fragt ihr nochmal nach."],
+  wishes: ["Wunschglas", "❤️‍🔥", "Beantwortet die Frage abwechselnd. Wenn daraus eine gemeinsame Idee entsteht, könnt ihr sie später im Kalender einplanen."],
+  dice: ["Date-Würfel", "🎲", "Würfelt eine kleine Aufgabe für euch beide. Macht sie, wenn sie euch beiden gefällt, oder würfelt weiter."]
+};
+const gamePlayers = ["Patrick", "Theresa"];
+const gameLevels = ["Zärtlich", "Verspielt", "Mutig"];
+let gameCards = null, gameLoading = false, gameLoadError = false;
+let gameRound = null;
+
+async function loadGameCards() {
+  if (!account || gameLoading) return;
+  const active = account;
+  gameLoading = true;
+  gameLoadError = false;
+  if (view === "spiele") render();
+  try {
+    const {data, error} = await authClient.from("love_game_cards").select("id, game, mode, level, prompt");
+    if (active !== account) return;
+    if (error) throw error;
+    gameCards = data;
+  } catch {
+    if (active === account) gameLoadError = true;
+  } finally {
+    if (active === account) {
+      gameLoading = false;
+      if (view === "spiele") render();
+    }
+  }
+}
+
+function openGame(key) {
+  if (!gameCards || !Object.hasOwn(games, key)) return;
+  gameRound = {key, level:1, player:0, card:null, seen:new Set(), scores:[0,0], recorded:false, answers:[]};
+  render();
+  document.getElementById("gameHeading")?.focus();
+}
+
+function chooseGameLevel(value) {
+  if (!gameRound || !gameLevels[value - 1]) return;
+  gameRound.level = value;
+  gameRound.card = null;
+  gameRound.seen.clear();
+  gameRound.recorded = false;
+  gameRound.answers = [];
+  render();
+  document.getElementById("gameLevel")?.focus();
+}
+
+function drawGameCard(mode, skip = false) {
+  if (!gameRound || !gameCards) return;
+  const round = gameRound;
+  const deck = gameCards.filter(card => card.game === round.key && card.mode === mode && card.level === round.level);
+  if (!deck.length) return;
+  let choices = deck.filter(card => !round.seen.has(card.id));
+  if (!choices.length) {
+    for (const card of deck) round.seen.delete(card.id);
+    choices = deck.filter(card => card.id !== round.card?.id);
+  }
+  if (round.card && !skip) round.player = 1 - round.player;
+  round.card = (choices.length ? choices : deck)[Math.floor(Math.random() * (choices.length || deck.length))];
+  round.seen.add(round.card.id);
+  round.answers = [];
+  round.recorded = false;
+  render();
+  document.getElementById("gamePrompt")?.focus();
+}
+
+function scoreGameCard(hit) {
+  if (gameRound?.key !== "quiz" || !gameRound.card || gameRound.recorded) return;
+  if (hit) gameRound.scores[gameRound.player]++;
+  gameRound.recorded = true;
+  render();
+  document.getElementById("gameScore")?.focus();
+}
+
+function answerGameCard(answer) {
+  if (gameRound?.key !== "boundaries" || !gameRound.card || gameRound.answers.length >= 2 ||
+      !["Ja", "Nein", "Vielleicht"].includes(answer)) return;
+  gameRound.answers.push(answer);
+  render();
+  document.getElementById("gameResponse")?.focus();
+}
+
+function gamesView() {
+  if (gameLoading) return '<section class="panel"><h2>Spiele</h2><p role="status">Spiele werden geladen …</p></section>';
+  if (gameLoadError || !gameCards) return '<section class="panel"><h2>Spiele</h2><p>Die Karten konnten nicht geladen werden.</p><button type="button" onclick="loadGameCards()">Erneut versuchen</button></section>';
+  if (!gameRound) return `<section class="games-area">
+    <h2>Spiele für euch zwei</h2>
+    <p class="muted">Wählt ein Spiel und spielt zusammen auf einem Handy. Jede Karte darf übersprungen werden.</p>
+    <div class="home-actions">${Object.entries(games).map(([key, [label, icon, rules]]) =>
+      `<button class="home-card" type="button" onclick="openGame('${key}')">
+        <span class="home-icon" aria-hidden="true">${icon}</span><strong>${label}</strong><small>${rules}</small>
+      </button>`).join("")}</div>
+  </section>`;
+
+  const round = gameRound;
+  const [label, icon, rules] = games[round.key];
+  const first = gamePlayers[round.player];
+  const second = gamePlayers[1 - round.player];
+  const score = round.key === "quiz"
+    ? `<p id="gameScore" role="status" tabindex="-1">${gamePlayers[0]} ${round.scores[0]} · ${gamePlayers[1]} ${round.scores[1]}</p>` : "";
+  const responses = round.key === "boundaries" && round.card
+    ? `<div id="gameResponse" tabindex="-1">
+      ${round.answers.length === 2
+        ? `<p>${first}: ${round.answers[0]} · ${second}: ${round.answers[1]}</p>`
+        : `<p>${round.answers.length ? second : first}, wie klingt die Idee für dich?</p>
+          <div class="actions">${["Ja", "Nein", "Vielleicht"].map(answer =>
+            `<button type="button" onclick="answerGameCard('${answer}')">${answer}</button>`).join("")}</div>`}
+    </div>` : "";
+  return `<section class="panel games-area">
+    <button type="button" class="ghost" onclick="showGameList()">Alle Spiele</button>
+    <h2 id="gameHeading" tabindex="-1"><span aria-hidden="true">${icon}</span> ${label}</h2>
+    <p class="muted">${rules}</p>
+    <div class="row game-settings">
+      <label for="gameLevel">Intensität</label>
+      <select id="gameLevel" onchange="chooseGameLevel(Number(this.value))">
+        ${gameLevels.map((name, index) => `<option value="${index+1}" ${round.level === index+1 ? "selected" : ""}>${name}</option>`).join("")}
+      </select>
+    </div>
+    <p><strong>${first} ist dran</strong></p>
+    ${score}
+    ${round.card ? `<div id="gamePrompt" class="game-prompt" tabindex="-1">
+      ${round.key === "truth" ? `<small>${round.card.mode === "truth" ? "Wahrheit" : "Pflicht"}</small>` : ""}
+      <p>${esc(round.card.prompt)}</p>
+    </div>` : ""}
+    ${responses}
+    ${round.key === "quiz" && round.card && !round.recorded ? `<div class="actions">
+      <button type="button" onclick="scoreGameCard(true)">Richtig geraten</button>
+      <button type="button" onclick="scoreGameCard(false)">Daneben geraten</button>
+    </div>` : ""}
+    <div class="actions game-actions">
+      ${round.key === "truth"
+        ? `<button class="primary" type="button" onclick="drawGameCard('truth')">Wahrheit</button>
+          <button type="button" onclick="drawGameCard('dare')">Pflicht</button>`
+        : `<button class="primary" type="button" onclick="drawGameCard('main')">${round.key === "dice" ? "Würfeln" : round.card ? "Nächste Karte" : "Karte ziehen"}</button>`}
+      ${round.card ? `<button type="button" onclick="drawGameCard('${round.card.mode}',true)">Überspringen</button>` : ""}
+    </div>
+  </section>`;
+}
+
+function showGameList() {
+  gameRound = null;
+  render();
+  document.querySelector(".games-area .home-card")?.focus();
+}
+
 function profileAvatar(value) {
   return avatarOptions.some(([emoji]) => emoji === value) ? value : avatarOptions[0][0];
 }
