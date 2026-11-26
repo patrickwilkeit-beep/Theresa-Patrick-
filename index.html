@@ -251,6 +251,7 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .rating-stars{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
 .rating-stars button{min-width:44px;min-height:44px;padding:4px;font-size:1.4rem;color:#f4ce76}
 .rating-stars button[aria-pressed="true"]{border-color:#f4ce76;background:#492c32}
+.day.has-plan::after{content:"•";display:block;color:#ff8995;line-height:1}
 .day.future:disabled{opacity:.75;cursor:default}
 .day.period{box-shadow:inset 0 -4px #f17b96}
 .day.period:disabled{opacity:.65}
@@ -426,7 +427,7 @@ async function loadPrivateData(userId) {
   if (!catalog) return null;
 
   const coupleId = catalog.couple_id;
-  const [progress, personal, toys, toyChoices, membership, periods, profile, memories] = await Promise.all([
+  const [progress, personal, toys, toyChoices, membership, periods, profile, memories, plans, interests, matches] = await Promise.all([
     authClient.from("love_progress").select("idea_id").eq("couple_id", coupleId),
     authClient.from("love_personal").select("kind, item_id, content").eq("user_id", userId),
     authClient.from("love_toys").select("id, name, categories, photo").eq("couple_id", coupleId).order("name"),
@@ -435,7 +436,10 @@ async function loadPrivateData(userId) {
     authClient.from("love_periods").select("id, user_id, starts_on, ends_on, shared").eq("couple_id", coupleId).order("starts_on", {ascending:false}),
     authClient.from("love_profile_fields").select("user_id, field, value, shared, mood_on").eq("couple_id", coupleId),
     authClient.from("love_memories").select("id, user_id, description, created_at, shared")
-      .eq("couple_id", coupleId).order("created_at", {ascending:false})
+       .eq("couple_id", coupleId).order("created_at", {ascending:false}),
+    authClient.from("love_calendar_plans").select("id, idea_id, kind, scheduled_on, title, toy_ids").eq("couple_id", coupleId),
+    authClient.from("love_interests").select("idea_id").eq("couple_id", coupleId).eq("user_id", userId),
+    authClient.rpc("love_mutual_interests", {p_couple_id:coupleId})
   ]);
   if (progress.error) throw progress.error;
   if (personal.error) throw personal.error;
@@ -445,9 +449,12 @@ async function loadPrivateData(userId) {
   if (periods.error) throw periods.error;
   if (profile.error) throw profile.error;
   if (memories.error) throw memories.error;
+  if (plans.error) throw plans.error;
+  if (interests.error) throw interests.error;
+  if (matches.error) throw matches.error;
   return {
     catalog, progress: progress.data, personal: personal.data, toys: toys.data, toyChoices: toyChoices.data,
-    canTrackPeriod: membership.data?.period_tracking_enabled === true, periods: periods.data, profileFields: profile.data, memories: memories.data
+    canTrackPeriod: membership.data?.period_tracking_enabled === true, periods: periods.data, profileFields: profile.data, memories: memories.data, plans: plans.data, interests: interests.data, matches: matches.data
   };
 }
 
@@ -459,7 +466,8 @@ function startPrivateData(userId, data) {
   outdoorIdeas = outdoor;
   selected = Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
   state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], ratings: new Map(), toys: data.toys, toyChoices: data.toyChoices, periods: data.periods, profileFields: data.profileFields, memories: data.memories.filter(entry => entry.user_id === userId),
-    sharedMemories: data.memories.filter(entry => entry.user_id !== userId && entry.shared) };
+    sharedMemories: data.memories.filter(entry => entry.user_id !== userId && entry.shared),
+    plans: data.plans, interests: data.interests.map(row => row.idea_id), matches: data.matches.map(row => row.idea_id) };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
     if (kind === "wish") state.wishes.push(id);
@@ -472,6 +480,7 @@ function startPrivateData(userId, data) {
 
 function clearPrivateData() {
   account = state = null;
+  planDraft = null;
   editingToyId = editingPeriodId = editingMemoryId = null;
   days = [];
   outdoorIdeas = [];
@@ -1110,6 +1119,185 @@ function rateActivity(id, score) {
   });
 }
 
+let planDraft = null;
+
+function ideaTitle(idea) {
+  return idea.text.split(" – ")[0].slice(0, 160);
+}
+
+function planningPanel(month) {
+  const monthKey = dateKey(month).slice(0, 7);
+  const plans = state.plans.filter(plan => plan.scheduled_on?.startsWith(monthKey))
+    .sort((a, b) => a.scheduled_on.localeCompare(b.scheduled_on));
+  const draft = planDraft;
+  return `<section class="panel">
+    <div class="row"><h2>Gemeinsame Termine</h2><button type="button" onclick="openPlan('own')">Eigener Termin</button></div>
+    ${draft ? `<form class="toy-form" onsubmit="savePlan(event)">
+      <h3>${draft.kind === "move" ? "Aktivität verschieben" : draft.kind === "repeat" ? "Nochmal einplanen" : "Gemeinsamen Termin planen"}</h3>
+      <label for="planTitle">Titel</label><input id="planTitle" maxlength="160" required value="${esc(draft.title)}">
+      <label for="planDate">Datum</label><input id="planDate" type="date" required value="${esc(draft.scheduled_on)}">
+      ${state.toys.length ? `<fieldset><legend>Toys auswählen</legend>
+        ${state.toys.map(toy => `<label class="toy-option"><input type="checkbox" name="planToy" value="${esc(toy.id)}"
+          ${draft.toy_ids.includes(toy.id) ? "checked" : ""}>${esc(toy.name)}</label>`).join("")}</fieldset>` : ""}
+      <div class="actions"><button type="submit" class="primary">Termin speichern</button>
+      <button type="button" onclick="closePlan()">Abbrechen</button></div>
+      <p id="planStatus" role="status"></p>
+    </form>` : ""}
+    ${plans.length ? plans.map(plan => {
+      const toys = state.toys.filter(toy => plan.toy_ids.includes(toy.id));
+      return `<article class="memory-entry">
+        <div class="small">${formatPeriodDate(plan.scheduled_on)}${plan.kind === "move" ? " · Verschoben" : plan.kind === "repeat" ? " · Wiederholung" : ""}</div>
+        <h3>${esc(plan.title)}</h3>
+        ${toys.length ? `<p>Toys · ${toys.map(toy => esc(toy.name)).join(", ")}</p>` : ""}
+        ${plan.idea_id && ideaById(plan.idea_id) ? `<button type="button" data-idea="${esc(plan.idea_id)}" onclick="selectById(this.dataset.idea)">Zur ursprünglichen Aktivität</button>` : ""}
+        <div class="actions"><button type="button" data-id="${plan.id}" onclick="editPlan(this.dataset.id)">Bearbeiten</button>
+          <button type="button" data-id="${plan.id}" onclick="deletePlan(this.dataset.id)">Entfernen</button></div>
+      </article>`;
+    }).join("") : '<p class="muted">Für diesen Monat gibt es noch keine gemeinsamen Termine.</p>'}
+  </section>`;
+}
+
+function openPlan(kind, ideaId = null) {
+  if (!account || pending === account) return;
+  const idea = ideaId ? ideaById(ideaId) : null;
+  if (ideaId && !idea) return;
+  const previous = kind === "move" ? state.plans.find(plan => plan.idea_id === ideaId && ["move","skip"].includes(plan.kind)) : null;
+  const month = dateAt(selected);
+  month.setMonth(month.getMonth() + monthOffset, 1);
+  planDraft = {
+    id: previous?.id || crypto.randomUUID(), kind, idea_id: ideaId,
+    title: idea ? ideaTitle(idea) : "",
+    scheduled_on: previous?.scheduled_on || dateKey(month > today ? month : today),
+    toy_ids: previous?.toy_ids || state.toyChoices.filter(choice => choice.idea_id === ideaId).map(choice => choice.toy_id)
+  };
+  render();
+  document.getElementById("planTitle")?.focus();
+}
+
+function editPlan(id) {
+  if (pending === account) return;
+  const plan = state.plans.find(item => item.id === id && item.scheduled_on);
+  if (!plan) return;
+  planDraft = {...plan};
+  render();
+  document.getElementById("planTitle")?.focus();
+}
+
+function closePlan() {
+  planDraft = null;
+  render();
+}
+
+async function savePlan(event) {
+  event.preventDefault();
+  if (!account || !planDraft || pending === account) return;
+  const active = account;
+  const form = event.currentTarget;
+  const status = form.querySelector("#planStatus");
+  const title = form.querySelector("#planTitle").value.trim();
+  if (!title) {
+    status.textContent = "Bitte gib einen Titel ein.";
+    return;
+  }
+  const plan = {
+    ...planDraft, couple_id: active.coupleId, title,
+    scheduled_on: form.querySelector("#planDate").value,
+    toy_ids: new FormData(form).getAll("planToy")
+  };
+  const button = form.querySelector('button[type="submit"]');
+  pending = active;
+  button.disabled = true;
+  try {
+    const {error} = await authClient.from("love_calendar_plans").upsert(plan);
+    if (active !== account) return;
+    if (error) throw error;
+    storePlan(plan);
+    const [year, month] = plan.scheduled_on.split("-").map(Number);
+    const selectedDate = dateAt(selected);
+    monthOffset = (year - selectedDate.getFullYear()) * 12 + month - 1 - selectedDate.getMonth();
+    planDraft = null;
+    render();
+  } catch {
+    status.textContent = "Der Termin konnte nicht gespeichert werden. Falls dein Schatz ihn gerade geändert hat, lade die Seite neu.";
+  } finally {
+    if (pending === active) pending = null;
+    button.disabled = false;
+  }
+}
+
+function storePlan(plan) {
+  state.plans = [...state.plans.filter(item => item.id !== plan.id), plan];
+}
+
+function deletePlan(id) {
+  if (!state.plans.some(plan => plan.id === id) || !confirm("Diesen Eintrag aus dem gemeinsamen Kalender entfernen?")) return;
+  saveChange(() => authClient.from("love_calendar_plans").delete().eq("id", id).eq("couple_id", account.coupleId), () => {
+    state.plans = state.plans.filter(plan => plan.id !== id);
+    if (planDraft?.id === id) planDraft = null;
+  });
+}
+
+function skipActivity(ideaId) {
+  const idea = ideaById(ideaId);
+  if (idea?.day === undefined) return;
+  const previous = state.plans.find(plan => plan.idea_id === ideaId && ["move","skip"].includes(plan.kind));
+  if (previous?.kind === "skip" || (previous && !confirm("Den verschobenen Termin entfernen und die Aktivität überspringen?"))) return;
+  const plan = {
+    id: previous?.id || crypto.randomUUID(), couple_id:account.coupleId, idea_id:ideaId,
+    kind:"skip", scheduled_on:null, title:ideaTitle(idea), toy_ids:[]
+  };
+  saveChange(() => authClient.from("love_calendar_plans").upsert(plan), () => storePlan(plan));
+}
+
+function activityPlanActions(idea) {
+  const decision = state.plans.find(plan => plan.idea_id === idea.id && ["move","skip"].includes(plan.kind));
+  return `<section class="panel"><h2>Aktivität planen</h2>
+    ${decision ? `<p>${decision.kind === "skip" ? "Übersprungen" : `Verschoben auf ${formatPeriodDate(decision.scheduled_on)}`}
+      <button type="button" onclick="deletePlan('${decision.id}')">Rückgängig machen</button></p>` : ""}
+    <div class="actions"><button type="button" onclick="openPlan('repeat','${idea.id}')">Nochmal einplanen</button>
+      <button type="button" onclick="openPlan('move','${idea.id}')">Verschieben</button>
+      ${decision?.kind !== "skip" ? `<button type="button" onclick="skipActivity('${idea.id}')">Heute passt es nicht</button>` : ""}
+    </div>
+    ${interestButton(idea.id)}
+  </section>`;
+}
+
+function interestButton(id) {
+  const active = state.interests.includes(id);
+  return `<button class="ghost" type="button" aria-pressed="${active}" data-interest="${esc(id)}" onclick="toggleInterest(this.dataset.interest)">
+    ${active ? "Interesse vorgemerkt" : "Das würde ich gern machen"}</button>`;
+}
+
+function mutualInterestsView() {
+  const matches = state.matches.map(ideaById).filter(Boolean);
+  return `<section class="panel">
+    <h2>Das wollen wir beide</h2>
+    ${matches.length ? matches.map(idea => `<p><button type="button" data-idea="${esc(idea.id)}" onclick="selectById(this.dataset.idea)">${esc(ideaTitle(idea))}</button></p>`).join("")
+      : '<p class="muted">Hier erscheinen Ideen, sobald ihr beide Interesse angemeldet habt.</p>'}
+  </section>`;
+}
+
+function toggleInterest(id) {
+  if (!account || !ideaById(id)) return;
+  const active = account;
+  const marked = state.interests.includes(id);
+  let matches;
+  saveChange(async () => {
+    const table = authClient.from("love_interests");
+    const identity = {couple_id:active.coupleId, user_id:active.userId, idea_id:id};
+    const result = marked ? await table.delete().match(identity)
+      : await table.upsert(identity, {ignoreDuplicates:true});
+    if (!result.error) {
+      const refreshed = await authClient.rpc("love_mutual_interests", {p_couple_id:active.coupleId});
+      if (!refreshed.error) matches = refreshed.data.map(row => row.idea_id);
+    }
+    return result;
+  }, () => {
+    state.interests = marked ? state.interests.filter(item => item !== id) : [...state.interests, id];
+    state.matches = matches || (marked ? state.matches.filter(item => item !== id) : state.matches);
+  });
+}
+
 function calendarView(){
 let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,1), year=first.getFullYear(),month=first.getMonth();
 let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
@@ -1122,26 +1310,30 @@ for (let n = 1; n <= count; n++) {
   const available = isReleased(idx);
   const future = idx > calendarIndex(today) && idx < days.length;
   const icon = categoryIcons[days[idx]?.cat] || "";
-  const dayLabel = [fmt(dayDate), future ? "Aktivität noch verdeckt" : "", marked ? "Periode" : ""].filter(Boolean).join(" · ");
-  html += `<button class="day ${future ? "future" : ""} ${marked ? "period" : ""}
+  const hasPlan = state.plans.some(plan => plan.scheduled_on === dateKey(dayDate));
+  const dayLabel = [fmt(dayDate), hasPlan ? "Gemeinsamer Termin" : "", future ? "Aktivität noch verdeckt" : "", marked ? "Periode" : ""].filter(Boolean).join(" · ");
+  html += `<button class="day ${future ? "future" : ""} ${hasPlan ? "has-plan" : ""} ${marked ? "period" : ""}
     ${available && idx === selected ? "selected" : ""} ${available && state.done.includes(days[idx].id) ? "done" : ""}
     ${available && idx === calendarIndex(today) ? "today" : ""}" aria-label="${dayLabel}"
     ${available ? `onclick="selectDay(${idx})"` : "disabled"}>${n}<span class="day-cat-icon">${icon}</span></button>`;
 }
 html+=`</div><div class="small" style="margin-top:10px">Heute und vergangene Tage sind geöffnet. Künftige Tage zeigen das Kategorie-Symbol.${state.periods.length ? " · Rosa Linie = Periode" : ""}</div></div>`;
-if (!isReleased(selected)) return html + periodView(d);
+html+=planningPanel(first);
+if (!isReleased(selected)) return html + periodView(d) + mutualInterestsView();
 let idea=days[selected];
 html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2>${categoryTag(idea.cat)}<div class="idea"><h3>${esc(idea.text)}</h3></div><div class="detail-card"><span class="detail-label">👥 Wer macht was?</span><strong>${esc(idea.roles)}</strong></div><div class="detail-grid"><div class="detail-card"><span class="detail-label">⏱ Zeit einplanen</span><strong>${esc(idea.duration)}</strong></div><div class="detail-card"><span class="detail-label">⚡ Intensität</span><strong>${esc(idea.level)}</strong></div></div><div class="detail-card"><span class="detail-label">🧰 Benötigte Utensilien / Vorbereitung</span><ul class="materials">${idea.materials.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><p class="small">Die Angaben sind Vorschläge. Passt Dauer und Material gemeinsam an; Zustimmung, Grenzen und jederzeitige Pause haben Vorrang.</p><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}')">+ Meine Wunschliste</button></div></div>`;
 html+=`<div class="panel">${ratingView(idea.id)}</div>`;
 html+=toyChoicesView(idea);
+html+=activityPlanActions(idea);
 html+=periodView(d);
+html+=mutualInterestsView();
 if(d.getDay()===0||d.getDay()===6){
 html+=`<div class="panel"><div class="small">Freiwillig · nur am Wochenende als Zusatz gedacht</div><h2 style="margin-top:5px">🌙 Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Acht Vorschläge zum Durchsehen – nichts davon ist fest eingeplant. Öffentliche Orte bleiben für alle respektvoll und unauffällig.</p><button class="primary" onclick="goView('outdoor')">Wochenendideen ansehen</button></div>`;
 }
 html+=`<div class="panel"><div class="row"><h2>Fortschritt</h2><strong>${state.done.filter(x=>x[0]==="d").length} / 365</strong></div><div style="height:8px;background:#38242e;border-radius:9px;overflow:hidden"><div style="height:100%;width:${Math.min(100,state.done.filter(x=>x[0]==="d").length/365*100)}%;background:linear-gradient(90deg,var(--wine2),var(--gold))"></div></div></div>`;
 return html;
 }
-function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}')">+ Meine Wunschliste</button></div>${ratingView(x.id)}${toyChoicesView(x)}</div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
+function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}')">+ Meine Wunschliste</button></div>${ratingView(x.id)}${interestButton(x.id)}${toyChoicesView(x)}</div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
 function listView(){
   const entries = state.wishes.map(ideaById).filter(Boolean);
   return `<div class="panel"><h2>Meine Wunschliste</h2>${entries.length ? entries.map(idea =>
