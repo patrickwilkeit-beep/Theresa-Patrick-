@@ -271,6 +271,13 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .toy-categories{display:flex;flex-wrap:wrap;gap:4px 16px;margin:12px 0}
 .toy-categories label,.toy-option{display:flex;align-items:center;gap:8px;padding:8px 0}
 .toy-categories input,.toy-option input{width:auto}
+.toy-picker{margin-top:10px}
+.toy-picker summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:44px;padding:8px 12px;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#1e1017;list-style:none}
+.toy-picker summary::-webkit-details-marker{display:none}
+.toy-picker summary::after{content:"";width:8px;height:8px;flex:none;border-right:2px solid #e5a2b4;border-bottom:2px solid #e5a2b4;transform:rotate(45deg)}
+.toy-picker[open] summary::after{transform:rotate(225deg)}
+.toy-picker-options{padding:0 10px}
 .toy-form label[for]{display:block;margin:12px 0 4px}
 </style>
 <style>
@@ -576,6 +583,8 @@ if (!state) return;
 today = berlinCalendarDate();
 document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
 let root=document.getElementById("app");
+const openPickers = new Set([...root.querySelectorAll("details[data-toy-picker][open]")].map(picker => picker.dataset.toyPicker));
+const focusedToy = document.activeElement?.matches("input[data-toy-choice]") ? document.activeElement : null;
 if(view==="start") root.innerHTML=startView();
 if(view==="kategorien") root.innerHTML=categoriesView();
 if(view==="kalender") root.innerHTML=calendarView();
@@ -586,6 +595,14 @@ if(view==="eigene") root.innerHTML=customView();
 if(view==="outdoor") root.innerHTML=outdoorView();
 if(view==="toys") root.innerHTML=toyGalleryView();
 if(view==="profil") root.innerHTML=profileView();
+for (const picker of root.querySelectorAll("details[data-toy-picker]")) {
+  if (!openPickers.has(picker.dataset.toyPicker)) continue;
+  picker.open = true;
+  if (focusedToy?.dataset.idea === picker.dataset.toyPicker) {
+    [...picker.querySelectorAll("input[data-toy-choice]")]
+      .find(choice => choice.dataset.toyChoice === focusedToy.dataset.toyChoice)?.focus({preventScroll:true});
+  }
+}
 }
 function profileAvatar(value) {
   return avatarOptions.some(([emoji]) => emoji === value) ? value : avatarOptions[0][0];
@@ -964,14 +981,20 @@ function toyChoicesView(idea) {
   const other = state.toys.filter(toy => !toy.categories.includes(idea.cat));
   const selectedIds = new Set(state.toyChoices.filter(choice => choice.idea_id === idea.id).map(choice => choice.toy_id));
   const option = toy => `<label class="toy-option"><input type="checkbox"
-    onchange="chooseToy('${idea.id}','${toy.id}',this.checked)" ${selectedIds.has(toy.id) ? "checked" : ""}>
+    data-idea="${esc(idea.id)}" data-toy-choice="${esc(toy.id)}"
+    onchange="chooseToy(this.dataset.idea,this.dataset.toyChoice,this.checked)" ${selectedIds.has(toy.id) ? "checked" : ""}>
     ${esc(toy.name)}</label>`;
+  const selectionLabel = selectedIds.size ? `${selectedIds.size} ausgewählt` : "Toys auswählen";
   return `<div class="panel"><div class="row"><h2>Toys für diese Aktivität</h2>
-    <button onclick="goView('toys')">Zur Galerie</button></div>
-    ${state.toys.length ? `<h3>Passende Vorschläge</h3>
-      ${suggested.map(option).join("") || '<p class="muted">Noch keine Toys für diese Kategorie hinterlegt.</p>'}
-      ${other.length ? `<h3>Weitere Toys</h3>${other.map(option).join("")}` : ""}`
-      : '<p class="muted">Fügt zuerst ein Toy in der Galerie hinzu.</p>'}
+    <button type="button" onclick="goView('toys')">Zur Galerie</button></div>
+    ${state.toys.length ? `<details class="toy-picker" data-toy-picker="${esc(idea.id)}">
+      <summary>${selectionLabel}</summary>
+      <div class="toy-picker-options">
+        <h3>Passende Vorschläge</h3>
+        ${suggested.map(option).join("") || '<p class="muted">Noch keine Toys für diese Kategorie hinterlegt.</p>'}
+        ${other.length ? `<h3>Weitere Toys</h3>${other.map(option).join("")}` : ""}
+      </div>
+    </details>` : '<p class="muted">Fügt zuerst ein Toy in der Galerie hinzu.</p>'}
   </div>`;
 }
 
