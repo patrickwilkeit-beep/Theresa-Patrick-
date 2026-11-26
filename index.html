@@ -217,6 +217,7 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 
 </style>
 <style>
+.day.future:disabled{opacity:.75;cursor:default}
 .day.period{box-shadow:inset 0 -4px #f17b96}
 .day.period:disabled{opacity:.65}
 .period-list{padding-left:0;list-style:none}
@@ -298,8 +299,16 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 <footer id="appFooter"></footer>
 </main>
 <script>
-const today=new Date(); today.setHours(0,0,0,0);
-const start=new Date(today);
+const calendarClock = new Intl.DateTimeFormat("en", {
+  timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric"
+});
+function berlinCalendarDate() {
+  const parts = Object.fromEntries(calendarClock.formatToParts(new Date()).map(({type, value}) => [type, value]));
+  return new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+}
+let today = berlinCalendarDate();
+// Keep the existing d0 activity and its saved selections together on a fixed date.
+const start = new Date(2026, 10, 26);
 const categories=["Romantik","Zärtlichkeiten","Oral","Anal","BDSM","Spanking","Fesseln","Intensiv","Massage","Selbstbefriedigung","Outdoor"];
 let days = [], outdoorIdeas = [], state = null, account = null;
 let view = "start", selected = 0, monthOffset = 0;
@@ -339,6 +348,7 @@ function startPrivateData(userId, data) {
   account = { userId, coupleId: catalog.couple_id, canTrackPeriod: data.canTrackPeriod };
   days = Array.from({length:365}, (_, i) => ({ ...ideas[i % ideas.length], id:"d"+i, day:i }));
   outdoorIdeas = outdoor;
+  selected = Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
   state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], toys: data.toys, toyChoices: data.toyChoices, periods: data.periods };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
@@ -387,7 +397,17 @@ async function saveChange(request, apply) {
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function dateAt(i){let d=new Date(start);d.setDate(d.getDate()+i);return d}
 function fmt(d){return d.toLocaleDateString("de-DE",{day:"2-digit",month:"long",year:"numeric"})}
-function allIdeas(){return [...days,...state.custom,...outdoorIdeas]}
+function calendarIndex(date) {
+  const dateNumber = value => Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+  return (dateNumber(date) - dateNumber(start)) / 86400000;
+}
+function isReleased(index) {
+  return Number.isInteger(index) && index >= 0 && index < days.length && index <= calendarIndex(today);
+}
+function releasedDays() {
+  return days.slice(0, Math.max(0, calendarIndex(today) + 1));
+}
+function allIdeas(){return [...releasedDays(),...state.custom,...outdoorIdeas]}
 function ideaById(id){return allIdeas().find(x=>x.id===id)}
 
 const categoryIcons={"Romantik":"❤️","Zärtlichkeiten":"🥰","Oral":"👄","Anal":"🍑","BDSM":"⛓️","Spanking":"🔥","Fesseln":"🔗","Intensiv":"⚡","Massage":"💆","Selbstbefriedigung":"💋","Outdoor":"🌙"};
@@ -421,13 +441,19 @@ function startView(){
   <p class="small" style="text-align:center;margin-top:16px">Private Inhalte werden hier nicht eingeblendet.</p>`;
 }
 function goView(v,cat=null){
+  today = berlinCalendarDate();
   view=v;
-  if(cat){const ix=days.findIndex(x=>x.cat===cat);if(ix>=0)selected=ix;}
+  if (v === "kalender") {
+    const matching = cat && releasedDays().findLast(idea => idea.cat === cat);
+    selected = matching ? matching.day : Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
+    monthOffset = 0;
+  }
   render();
 }
 
 function render(){
 if (!state) return;
+today = berlinCalendarDate();
 document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
 let root=document.getElementById("app");
 if(view==="start") root.innerHTML=startView();
@@ -690,8 +716,21 @@ let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,
 let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
 let html=`<div class="panel"><div class="row"><div><div class="small">Euer gemeinsamer Kalender</div><h2>${first.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</h2></div><div><button onclick="changeMonth(-1)">‹</button> <button onclick="changeMonth(1)">›</button></div></div><div class="grid">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<div class="dayhead">${x}</div>`).join("")}`;
 for(let i=0;i<firstDay;i++)html+='<div class="day empty"></div>';
-for(let n=1;n<=count;n++){let dayDate=new Date(year,month,n);let marked=dateInPeriod(dayDate);let idx=Math.round((dayDate-start)/86400000);let valid=idx>=0&&idx<365;html+=`<button class="day ${marked?"period":""} ${valid&&idx===selected?"selected":""} ${valid&&state.done.includes("d"+idx)?"done":""} ${valid&&dateAt(idx).getTime()===today.getTime()?"today":""}" ${marked?`aria-label="${fmt(dayDate)} · Periode"`:""} ${valid?`onclick="selectDay(${idx})"`:"disabled"}>${n}<span class="day-cat-icon">${categoryIcons[days[idx]?.cat]||""}</span></button>`}
-html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt${state.periods.length ? " · Rosa Linie = Periode" : ""}</div></div>`;
+for (let n = 1; n <= count; n++) {
+  const dayDate = new Date(year, month, n);
+  const marked = dateInPeriod(dayDate);
+  const idx = calendarIndex(dayDate);
+  const available = isReleased(idx);
+  const future = idx > calendarIndex(today) && idx < days.length;
+  const icon = categoryIcons[days[idx]?.cat] || "";
+  const dayLabel = [fmt(dayDate), future ? "Aktivität noch verdeckt" : "", marked ? "Periode" : ""].filter(Boolean).join(" · ");
+  html += `<button class="day ${future ? "future" : ""} ${marked ? "period" : ""}
+    ${available && idx === selected ? "selected" : ""} ${available && state.done.includes(days[idx].id) ? "done" : ""}
+    ${available && idx === calendarIndex(today) ? "today" : ""}" aria-label="${dayLabel}"
+    ${available ? `onclick="selectDay(${idx})"` : "disabled"}>${n}<span class="day-cat-icon">${icon}</span></button>`;
+}
+html+=`</div><div class="small" style="margin-top:10px">Heute und vergangene Tage sind geöffnet. Künftige Tage zeigen das Kategorie-Symbol.${state.periods.length ? " · Rosa Linie = Periode" : ""}</div></div>`;
+if (!isReleased(selected)) return html + periodView(d);
 let idea=days[selected];
 html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2>${categoryTag(idea.cat)}<div class="idea"><h3>${esc(idea.text)}</h3></div><div class="detail-card"><span class="detail-label">👥 Wer macht was?</span><strong>${esc(idea.roles)}</strong></div><div class="detail-grid"><div class="detail-card"><span class="detail-label">⏱ Zeit einplanen</span><strong>${esc(idea.duration)}</strong></div><div class="detail-card"><span class="detail-label">⚡ Intensität</span><strong>${esc(idea.level)}</strong></div></div><div class="detail-card"><span class="detail-label">🧰 Benötigte Utensilien / Vorbereitung</span><ul class="materials">${idea.materials.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><p class="small">Die Angaben sind Vorschläge. Passt Dauer und Material gemeinsam an; Zustimmung, Grenzen und jederzeitige Pause haben Vorrang.</p><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}')">+ Meine Wunschliste</button></div></div>`;
 html+=toyChoicesView(idea);
@@ -710,10 +749,17 @@ function listView(){
     <button onclick="removeList('${idea.id}')">Entfernen</button></div></div>`
   ).join("") : '<div class="emptymsg">Noch keine Wünsche gespeichert.</div>'}</div>`;
 }
-function favView(){let arr=state.favs;let h='<div class="panel"><h2>Favoriten</h2>';if(!arr.length)h+='<div class="emptymsg">Markiert eure Lieblingsideen im Kalender.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><div class="actions"><button onclick="selectById('${id}')">Im Kalender ansehen</button><button onclick="toggleFav('${id}')">★ Entfernen</button></div></div>`});return h+'</div>'}
+function favView(){let arr=state.favs.filter(ideaById);let h='<div class="panel"><h2>Favoriten</h2>';if(!arr.length)h+='<div class="emptymsg">Markiert eure Lieblingsideen im Kalender.</div>';arr.forEach(id=>{let x=ideaById(id);if(x)h+=`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><div class="actions"><button onclick="selectById('${id}')">Im Kalender ansehen</button><button onclick="toggleFav('${id}')">★ Entfernen</button></div></div>`});return h+'</div>'}
 function prefsView(){return `<div class="panel"><h2>Unsere Vorlieben</h2><p class="muted">Wählt aus, welche Arten von Ideen ihr im Zufallsgenerator bevorzugt. Alles kann jederzeit geändert werden.</p>${categories.map(c=>`<label class="checkline"><input type="checkbox" ${state.prefs.includes(c)?"checked":""} onchange="togglePref('${c}',this.checked)">${categoryIcons[c]||"•"} ${c}</label>`).join("")}<p class="small">Bei BDSM-Ideen gilt: vorher Grenzen, Safeword und gegenseitiges Einverständnis klären.</p></div>`}
 function customView(){return `<div class="panel"><h2>Eigene Idee hinzufügen</h2><label class="small">Kategorie</label><select id="newcat">${categories.map(c=>`<option>${c}</option>`).join("")}</select><label class="small">Eure Idee</label><textarea id="newtext" placeholder="Schreibt eure eigene Idee auf …"></textarea><button class="primary" onclick="addCustom()">Idee speichern</button></div><div class="panel"><h2>Eigene Ideen</h2>${state.custom.length?state.custom.map(x=>`<div class="listitem">${categoryTag(x.cat)}<div>${esc(x.text)}</div><button style="margin-top:8px" onclick="deleteCustom('${x.id}')">Löschen</button></div>`).join(""):'<div class="emptymsg">Hier erscheinen eure eigenen Ideen.</div>'}</div>`}
-function changeMonth(n){monthOffset+=n;render()}function selectDay(i){selected=i;monthOffset=0;render()}
+function changeMonth(n){monthOffset+=n;render()}
+function selectDay(i) {
+  today = berlinCalendarDate();
+  if (!isReleased(i)) return;
+  selected = i;
+  monthOffset = 0;
+  render();
+}
 function toggleDone(id, checked) {
   saveChange(() => {
     const table = authClient.from("love_progress");
@@ -745,7 +791,13 @@ function togglePref(cat, checked) {
     state.prefs = checked ? [...new Set([...state.prefs, cat])] : state.prefs.filter(item => item !== cat);
   });
 }
-function randomIdea(){let pool=days.filter(x=>state.prefs.includes(x.cat));if(!pool.length)pool=days;let x=pool[Math.floor(Math.random()*pool.length)];selected=x.day;monthOffset=0;render()}
+function randomIdea() {
+  today = berlinCalendarDate();
+  const available = releasedDays();
+  const preferred = available.filter(idea => state.prefs.includes(idea.cat));
+  const pool = preferred.length ? preferred : available;
+  if (pool.length) selectDay(pool[Math.floor(Math.random() * pool.length)].day);
+}
 function selectById(id){let x=ideaById(id);if(x&&x.day!==undefined){selected=x.day;view="kalender";render()}else if(x&&x.cat==="Outdoor"){view="outdoor";render()}}
 function addCustom() {
   const text = document.getElementById("newtext").value.trim();
@@ -762,7 +814,20 @@ function deleteCustom(id) {
     state.wishes = state.wishes.filter(item => item !== id);
   });
 }
-document.getElementById("tabs").addEventListener("click",e=>{let b=e.target.closest("button[data-view]");if(b){view=b.dataset.view;render()}});
+document.getElementById("tabs").addEventListener("click",e=>{let b=e.target.closest("button[data-view]");if(b) goView(b.dataset.view)});
+function refreshCalendarDay() {
+  const previousDay = today;
+  today = berlinCalendarDate();
+  if (!state || calendarIndex(previousDay) === calendarIndex(today)) return;
+  if (selected === calendarIndex(previousDay) && monthOffset === 0 && isReleased(calendarIndex(today))) {
+    selected = calendarIndex(today);
+  }
+  if (view === "kalender" && !document.querySelector("#periodStart:focus, #periodEnd:focus")) render();
+}
+setInterval(refreshCalendarDay, 30000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshCalendarDay();
+});
 if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
 render();
 </script>
