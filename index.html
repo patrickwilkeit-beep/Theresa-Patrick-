@@ -216,6 +216,15 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 @media(prefers-reduced-motion:reduce){#welcomeScreen .cover-art svg{animation:none}}
 
 </style>
+<style>
+.toy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px}
+.toy-card{background:#1c1017;border:1px solid #552932;border-radius:14px;padding:14px;overflow-wrap:anywhere}
+.toy-card img{width:100%;height:150px;object-fit:contain;background:#0d080b;border-radius:9px;margin-bottom:8px}
+.toy-categories{display:flex;flex-wrap:wrap;gap:4px 16px;margin:12px 0}
+.toy-categories label,.toy-option{display:flex;align-items:center;gap:8px;padding:8px 0}
+.toy-categories input,.toy-option input{width:auto}
+.toy-form label[for]{display:block;margin:12px 0 4px}
+</style>
 </head>
 <body>
 <header id="siteHeader"><div class="brand">LOVE <span style="color:#ff334f">&amp;</span> PAIN</div><div class="sub">ZEIT FÜR UNS ZWEI</div></header>
@@ -278,6 +287,7 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 <nav class="tabs" id="tabs">
 <button class="tab active" data-view="start">Startseite</button>
 <button class="tab" data-view="kalender">Kalender</button><button class="tab" data-view="outdoor">🌙 Outdoor</button><button class="tab" data-view="listen">Wunschlisten</button><button class="tab" data-view="favoriten">Favoriten</button><button class="tab" data-view="vorlieben">Vorlieben</button><button class="tab" data-view="eigene">Eigene Ideen</button>
+<button class="tab" data-view="toys">Toys-Galerie</button>
 </nav>
 <section id="app"></section>
 <footer id="appFooter"></footer>
@@ -288,6 +298,7 @@ const start=new Date(today);
 const categories=["Romantik","Zärtlichkeiten","Oral","Anal","BDSM","Spanking","Fesseln","Intensiv","Massage","Selbstbefriedigung","Outdoor"];
 let days = [], outdoorIdeas = [], state = null, account = null;
 let view = "start", selected = 0, monthOffset = 0;
+let editingToyId = null;
 
 async function loadPrivateData(userId) {
   const { data: catalog, error } = await authClient.from("love_catalog")
@@ -296,13 +307,17 @@ async function loadPrivateData(userId) {
   if (!catalog) return null;
 
   const coupleId = catalog.couple_id;
-  const [progress, personal] = await Promise.all([
+  const [progress, personal, toys, toyChoices] = await Promise.all([
     authClient.from("love_progress").select("idea_id").eq("couple_id", coupleId),
-    authClient.from("love_personal").select("kind, item_id, content").eq("user_id", userId)
+    authClient.from("love_personal").select("kind, item_id, content").eq("user_id", userId),
+    authClient.from("love_toys").select("id, name, categories, photo").eq("couple_id", coupleId).order("name"),
+    authClient.from("love_toy_choices").select("idea_id, toy_id").eq("couple_id", coupleId)
   ]);
   if (progress.error) throw progress.error;
   if (personal.error) throw personal.error;
-  return { catalog, progress: progress.data, personal: personal.data };
+  if (toys.error) throw toys.error;
+  if (toyChoices.error) throw toyChoices.error;
+  return { catalog, progress: progress.data, personal: personal.data, toys: toys.data, toyChoices: toyChoices.data };
 }
 
 function startPrivateData(userId, data) {
@@ -311,7 +326,7 @@ function startPrivateData(userId, data) {
   account = { userId, coupleId: catalog.couple_id };
   days = Array.from({length:365}, (_, i) => ({ ...ideas[i % ideas.length], id:"d"+i, day:i }));
   outdoorIdeas = outdoor;
-  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories] };
+  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], toys: data.toys, toyChoices: data.toyChoices };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
     if (kind === "wish") state.wishes.push(id);
@@ -323,6 +338,7 @@ function startPrivateData(userId, data) {
 
 function clearPrivateData() {
   account = state = null;
+  editingToyId = null;
   days = [];
   outdoorIdeas = [];
   view = "start";
@@ -408,7 +424,148 @@ if(view==="favoriten") root.innerHTML=favView();
 if(view==="vorlieben") root.innerHTML=prefsView();
 if(view==="eigene") root.innerHTML=customView();
 if(view==="outdoor") root.innerHTML=outdoorView();
+if(view==="toys") root.innerHTML=toyGalleryView();
 }
+function toyPhoto(toy) {
+  return /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(toy.photo || "")
+    ? `<img src="${toy.photo}" alt="${esc(toy.name)}" loading="lazy">`
+    : "";
+}
+
+function toyGalleryView() {
+  const editing = state.toys.find(toy => toy.id === editingToyId);
+  const cards = state.toys.map(toy => `<article class="toy-card">
+    ${toyPhoto(toy)}
+    <h3>${esc(toy.name)}</h3>
+    <div>${toy.categories.map(categoryTag).join(" ")}</div>
+    <div class="actions"><button onclick="editToy('${toy.id}')">Bearbeiten</button></div>
+  </article>`).join("");
+  return `<div class="panel">
+    <h2>Toys-Galerie</h2>
+    <p class="muted">Wählt beim Anlegen passende Kategorien. Bei einer Kalenderaktivität erscheinen eure Toys aus dieser Kategorie als Vorschlag.</p>
+    <div class="toy-grid">${cards || '<p>Ihr habt noch keine Toys eingetragen.</p>'}</div>
+  </div>
+  <form id="toyForm" class="panel toy-form" onsubmit="saveToy(event)">
+    <h2>${editing ? "Toy bearbeiten" : "Toy hinzufügen"}</h2>
+    <label for="toyName">Name</label><input id="toyName" maxlength="80" required value="${esc(editing?.name || "")}">
+    <label for="toyPhoto">Foto (optional)</label><input id="toyPhoto" type="file" accept="image/*">
+    ${editing?.photo ? '<label class="toy-option"><input id="removeToyPhoto" type="checkbox">Vorhandenes Foto entfernen</label>' : ""}
+    <fieldset><legend>Passend zu</legend><div class="toy-categories">${categories.map(cat =>
+      `<label><input type="checkbox" name="toyCategory" value="${esc(cat)}" ${editing?.categories.includes(cat) ? "checked" : ""}>${esc(cat)}</label>`
+    ).join("")}</div></fieldset>
+    <div class="actions"><button class="primary" type="submit">Speichern</button>
+      ${editing ? `<button type="button" onclick="editToy(null)">Abbrechen</button>
+        <button type="button" onclick="removeToy('${editing.id}')">Toy entfernen</button>` : ""}
+    </div>
+    <p id="toyStatus" role="status"></p>
+  </form>`;
+}
+
+function editToy(id) {
+  editingToyId = id;
+  render();
+  document.getElementById("toyName")?.focus();
+}
+
+async function resizeToyPhoto(file) {
+  if (file.size > 20 * 1024 * 1024) throw new Error("Das Foto darf höchstens 20 MB groß sein.");
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 720 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#160d12";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const photo = canvas.toDataURL("image/jpeg", 0.75);
+    if (photo.length > 400000) throw new Error("Das Foto ist zu groß. Wähle bitte ein kleineres Bild.");
+    return photo;
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function saveToy(event) {
+  event.preventDefault();
+  if (!account || pending === account) return;
+  const active = account;
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const status = form.querySelector("#toyStatus");
+  const name = form.querySelector("#toyName").value.trim();
+  if (!name) {
+    status.textContent = "Bitte gib einen Namen ein.";
+    return;
+  }
+  const editing = state.toys.find(toy => toy.id === editingToyId);
+  const tags = new FormData(form).getAll("toyCategory");
+  const file = form.querySelector("#toyPhoto").files[0];
+  const clearPhoto = form.querySelector("#removeToyPhoto")?.checked;
+  button.disabled = true;
+  pending = active;
+  try {
+    const photo = file ? await resizeToyPhoto(file) : (clearPhoto ? null : editing?.photo ?? null);
+    if (active !== account) return;
+    const toy = {id: editing?.id ?? crypto.randomUUID(), name, categories: tags, photo};
+    const {error} = await authClient.from("love_toys").upsert({...toy, couple_id: active.coupleId});
+    if (active !== account) return;
+    if (error) throw new Error("Das Toy konnte nicht gespeichert werden. Bitte versuche es erneut.");
+    state.toys = [...state.toys.filter(item => item.id !== toy.id), toy]
+      .sort((a, b) => a.name.localeCompare(b.name, "de"));
+    editingToyId = null;
+    render();
+  } catch (error) {
+    status.textContent = error.message || "Das Bild konnte nicht verarbeitet werden.";
+  } finally {
+    if (pending === active) pending = null;
+    button.disabled = false;
+  }
+}
+
+function removeToy(toyId) {
+  if (!confirm("Dieses Toy aus der Galerie und allen Kalenderaktivitäten entfernen?")) return;
+  saveChange(() => authClient.from("love_toys").delete().eq("couple_id", account.coupleId).eq("id", toyId), () => {
+    state.toys = state.toys.filter(toy => toy.id !== toyId);
+    state.toyChoices = state.toyChoices.filter(choice => choice.toy_id !== toyId);
+    editingToyId = null;
+  });
+}
+
+function toyChoicesView(idea) {
+  const suggested = state.toys.filter(toy => toy.categories.includes(idea.cat));
+  const other = state.toys.filter(toy => !toy.categories.includes(idea.cat));
+  const selectedIds = new Set(state.toyChoices.filter(choice => choice.idea_id === idea.id).map(choice => choice.toy_id));
+  const option = toy => `<label class="toy-option"><input type="checkbox"
+    onchange="chooseToy('${idea.id}','${toy.id}',this.checked)" ${selectedIds.has(toy.id) ? "checked" : ""}>
+    ${esc(toy.name)}</label>`;
+  return `<div class="panel"><div class="row"><h2>Toys für diese Aktivität</h2>
+    <button onclick="goView('toys')">Zur Galerie</button></div>
+    ${state.toys.length ? `<h3>Passende Vorschläge</h3>
+      ${suggested.map(option).join("") || '<p class="muted">Noch keine Toys für diese Kategorie hinterlegt.</p>'}
+      ${other.length ? `<h3>Weitere Toys</h3>${other.map(option).join("")}` : ""}`
+      : '<p class="muted">Fügt zuerst ein Toy in der Galerie hinzu.</p>'}
+  </div>`;
+}
+
+function chooseToy(ideaId, toyId, checked) {
+  if (!account) return;
+  if (pending === account) {
+    render();
+    return;
+  }
+  saveChange(() => {
+    const table = authClient.from("love_toy_choices");
+    const coupleId = account.coupleId;
+    return checked ? table.upsert({couple_id: coupleId, idea_id: ideaId, toy_id: toyId})
+      : table.delete().eq("couple_id", coupleId).eq("idea_id", ideaId).eq("toy_id", toyId);
+  }, () => {
+    state.toyChoices = state.toyChoices.filter(choice => choice.idea_id !== ideaId || choice.toy_id !== toyId);
+    if (checked) state.toyChoices.push({idea_id: ideaId, toy_id: toyId});
+  });
+}
+
 function calendarView(){
 let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,1), year=first.getFullYear(),month=first.getMonth();
 let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
@@ -418,13 +575,14 @@ for(let n=1;n<=count;n++){let idx=Math.round((new Date(year,month,n)-start)/8640
 html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt · Gemischte 40-Tage-Folge: keine gleiche Kategorie direkt hintereinander.</div></div>`;
 let idea=days[selected];
 html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2>${categoryTag(idea.cat)}<div class="idea"><h3>${esc(idea.text)}</h3></div><div class="detail-card"><span class="detail-label">👥 Wer macht was?</span><strong>${esc(idea.roles)}</strong></div><div class="detail-grid"><div class="detail-card"><span class="detail-label">⏱ Zeit einplanen</span><strong>${esc(idea.duration)}</strong></div><div class="detail-card"><span class="detail-label">⚡ Intensität</span><strong>${esc(idea.level)}</strong></div></div><div class="detail-card"><span class="detail-label">🧰 Benötigte Utensilien / Vorbereitung</span><ul class="materials">${idea.materials.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><p class="small">Die Angaben sind Vorschläge. Passt Dauer und Material gemeinsam an; Zustimmung, Grenzen und jederzeitige Pause haben Vorrang.</p><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}')">+ Meine Wunschliste</button></div></div>`;
+html+=toyChoicesView(idea);
 if(d.getDay()===0||d.getDay()===6){
 html+=`<div class="panel"><div class="small">Freiwillig · nur am Wochenende als Zusatz gedacht</div><h2 style="margin-top:5px">🌙 Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Acht Vorschläge zum Durchsehen – nichts davon ist fest eingeplant. Öffentliche Orte bleiben für alle respektvoll und unauffällig.</p><button class="primary" onclick="goView('outdoor')">Wochenendideen ansehen</button></div>`;
 }
 html+=`<div class="panel"><div class="row"><h2>Fortschritt</h2><strong>${state.done.filter(x=>x[0]==="d").length} / 365</strong></div><div style="height:8px;background:#38242e;border-radius:9px;overflow:hidden"><div style="height:100%;width:${Math.min(100,state.done.filter(x=>x[0]==="d").length/365*100)}%;background:linear-gradient(90deg,var(--wine2),var(--gold))"></div></div></div>`;
 return html;
 }
-function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}')">+ Meine Wunschliste</button></div></div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
+function outdoorView(){return `<div class="panel"><div class="small">🌙 FREIWILLIG · WOCHENENDE</div><h2>Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Diese Vorschläge sind Ideen, keine Aufgaben. Ihr entscheidet jedes Mal gemeinsam, ob, wann und worauf ihr Lust habt. In der Öffentlichkeit bleibt alles diskret und rücksichtsvoll gegenüber Unbeteiligten.</p></div>${outdoorIdeas.map(x=>`<div class="panel"><div class="row"><h3>${categoryIcons.Outdoor} ${esc(x.text.split(":")[0])}</h3><span class="tag">Optional</span></div><p>${esc(x.text)}</p><div class="actions"><button class="primary" onclick="toggleFav('${x.id}')">${state.favs.includes(x.id)?"★ Favorit entfernen":"☆ Favorit"}</button><button onclick="addToList('${x.id}')">+ Meine Wunschliste</button></div>${toyChoicesView(x)}</div>`).join("")}<div class="panel"><h2>Gemeinsame Regel</h2><p class="muted">Vorher kurz absprechen: Ort, Grenzen, Budget und jederzeitige Möglichkeit, die Idee zu ändern oder abzubrechen. Aktivitäten mit intimerem Charakter gehören ausschließlich in einen privaten, dafür geeigneten Rahmen.</p></div>`}
 function listView(){
   const entries = state.wishes.map(ideaById).filter(Boolean);
   return `<div class="panel"><h2>Meine Wunschliste</h2>${entries.length ? entries.map(idea =>
