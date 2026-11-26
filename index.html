@@ -625,7 +625,7 @@ function profileFieldView([field, label, placeholder], entry) {
   return `<fieldset><legend>${label}</legend>${control}
     ${field === "toy" ? `<div id="profileToyPhoto">${profileToyPhoto(value)}</div>` : ""}
     <label class="toy-option"><input type="checkbox" name="${field}_shared" ${entry?.shared ? "checked" : ""}>
-      Mit meinem Partnerkonto teilen</label></fieldset>`;
+      Mit meinem Schatz teilen</label></fieldset>`;
 }
 
 function profileToyPhoto(id) {
