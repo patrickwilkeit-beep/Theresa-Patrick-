@@ -108,7 +108,7 @@ header{
   margin:0 0 8px; font-size:clamp(25px,6vw,38px); letter-spacing:2px;
   color:#fff; text-shadow:0 0 8px #ff399d,0 0 20px #28caff;
 }
-.home-hero p{color:#b9c9e8;max-width:520px;margin:0 auto 16px}
+.home-hero p{color:#b9c9e8;max-width:520px;margin:12px auto 0}
 .home-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .home-card{
   min-height:112px; display:flex; flex-direction:column; justify-content:center;
@@ -457,10 +457,8 @@ function startView(){
     ["🔒","Privatbereich","Persönliche Listen","listen"]
   ];
   return `<div class="home-hero">
-    <div class="home-kicker">Zeit für uns zwei</div>
-    <h1>LOVE &amp; PAIN</h1>
-    <p>Euer gemeinsamer privater Bereich für Ideen, Wünsche und besondere Momente.</p>
     <button class="primary" onclick="goView('kalender')">Zum gemeinsamen Kalender</button>
+    <p>Euer gemeinsamer privater Bereich für Ideen, Wünsche und besondere Momente.</p>
   </div>
   <div class="home-actions">${cards.map(c=>`<button class="home-card" onclick="goView('${c[3]}',${c[4]?`'${c[4]}'`:"null"})">
     <span class="home-icon">${c[0]}</span><strong>${c[1]}</strong><small>${c[2]}</small></button>`).join("")}</div>
