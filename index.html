@@ -434,8 +434,8 @@ async function loadPrivateData(userId) {
     authClient.from("couple_members").select("period_tracking_enabled").eq("user_id", userId).eq("couple_id", coupleId).maybeSingle(),
     authClient.from("love_periods").select("id, user_id, starts_on, ends_on, shared").eq("couple_id", coupleId).order("starts_on", {ascending:false}),
     authClient.from("love_profile_fields").select("user_id, field, value, shared, mood_on").eq("couple_id", coupleId),
-    authClient.from("love_memories").select("id, description, created_at")
-      .eq("couple_id", coupleId).eq("user_id", userId).order("created_at", {ascending:false})
+    authClient.from("love_memories").select("id, user_id, description, created_at, shared")
+      .eq("couple_id", coupleId).order("created_at", {ascending:false})
   ]);
   if (progress.error) throw progress.error;
   if (personal.error) throw personal.error;
@@ -458,7 +458,8 @@ function startPrivateData(userId, data) {
   days = Array.from({length:365}, (_, i) => ({ ...ideas[i % ideas.length], id:"d"+i, day:i }));
   outdoorIdeas = outdoor;
   selected = Math.max(0, Math.min(days.length - 1, calendarIndex(today)));
-  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], ratings: new Map(), toys: data.toys, toyChoices: data.toyChoices, periods: data.periods, profileFields: data.profileFields, memories: data.memories };
+  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], ratings: new Map(), toys: data.toys, toyChoices: data.toyChoices, periods: data.periods, profileFields: data.profileFields, memories: data.memories.filter(entry => entry.user_id === userId),
+    sharedMemories: data.memories.filter(entry => entry.user_id !== userId && entry.shared) };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
     if (kind === "wish") state.wishes.push(id);
@@ -715,10 +716,12 @@ async function saveProfileFields(event) {
 function memoriesView() {
   const editing = state.memories.find(entry => entry.id === editingMemoryId);
   return `<h3>Geilster Sex mit dir</h3>
-    <p class="muted">Diese Erinnerungen sind nur für dich sichtbar.</p>
+    <p class="muted">Du entscheidest für jede Erinnerung, ob dein Schatz sie sehen darf.</p>
     <form onsubmit="saveMemory(event)">
       <label for="memoryDescription">${editing ? "Erinnerung bearbeiten" : "Neue Erinnerung beschreiben"}</label>
       <textarea id="memoryDescription" rows="4" maxlength="4000" required>${esc(editing?.description || "")}</textarea>
+      <label class="toy-option"><input type="checkbox" id="memoryShared" ${editing?.shared ? "checked" : ""}>
+        Mit meinem Schatz teilen</label>
       <div class="actions">
         <button class="primary" type="submit">${editing ? "Änderungen speichern" : "Erinnerung hinzufügen"}</button>
         ${editing ? '<button type="button" onclick="editMemory(null)">Abbrechen</button>' : ""}
@@ -728,11 +731,17 @@ function memoriesView() {
     ${state.memories.map(entry => `<article class="memory-entry">
       <time datetime="${esc(entry.created_at)}" class="small">${fmt(new Date(entry.created_at))}</time>
       <p>${esc(entry.description)}</p>
+      <div class="small">${entry.shared ? "Mit meinem Schatz geteilt" : "Nur für mich sichtbar"}</div>
       <div class="actions">
         <button type="button" data-id="${esc(entry.id)}" onclick="editMemory(this.dataset.id)">Bearbeiten</button>
         <button type="button" data-id="${esc(entry.id)}" onclick="removeMemory(this.dataset.id)">Löschen</button>
       </div>
-    </article>`).join("")}`;
+    </article>`).join("")}
+    ${state.sharedMemories.length ? `<h4>Mit mir geteilt</h4>
+      ${state.sharedMemories.map(entry => `<article class="memory-entry">
+        <time datetime="${esc(entry.created_at)}" class="small">${fmt(new Date(entry.created_at))}</time>
+        <p>${esc(entry.description)}</p>
+      </article>`).join("")}` : ""}`;
 }
 
 function refreshMemories(message = "") {
@@ -760,14 +769,15 @@ async function saveMemory(event) {
   }
   const button = event.currentTarget.querySelector('button[type="submit"]');
   const id = editingMemoryId;
+  const shared = document.getElementById("memoryShared").checked;
   pending = active;
   button.disabled = true;
   try {
     const table = authClient.from("love_memories");
     const request = id
-      ? table.update({description}).eq("id", id).eq("user_id", active.userId).eq("couple_id", active.coupleId)
-      : table.insert({id:crypto.randomUUID(), description, user_id:active.userId, couple_id:active.coupleId});
-    const {data, error} = await request.select("id, description, created_at").single();
+      ? table.update({description, shared}).eq("id", id).eq("user_id", active.userId).eq("couple_id", active.coupleId)
+      : table.insert({id:crypto.randomUUID(), description, shared, user_id:active.userId, couple_id:active.coupleId});
+    const {data, error} = await request.select("id, user_id, description, created_at, shared").single();
     if (active !== account) return;
     if (error) throw error;
     state.memories = id ? state.memories.map(entry => entry.id === id ? data : entry) : [data, ...state.memories];
