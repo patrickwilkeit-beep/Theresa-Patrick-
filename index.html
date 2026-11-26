@@ -171,8 +171,23 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 #authGate input{margin:5px 0 10px}
 #authMessage{min-height:22px;margin-top:10px;color:#ff9aa4;font-size:13px}
 #authActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-#accountBar{display:none;text-align:center;padding:8px 12px;color:#e5cbd0;font-size:12px}
-#accountBar button{margin-left:8px;padding:6px 10px;font-size:12px}
+#accountBar{display:none;max-width:980px;margin:auto;padding:8px 14px;text-align:right}
+.account-menu{display:inline-block;position:relative;z-index:5;text-align:left}
+.account-menu summary{display:flex;align-items:center;gap:8px;padding:4px 9px 4px 4px;
+  border:1px solid #70404b;border-radius:999px;background:#1c1017;cursor:pointer;list-style:none}
+.account-menu summary::-webkit-details-marker{display:none}
+.account-menu summary:focus-visible{outline:2px solid #f4ce76;outline-offset:3px}
+.account-avatar{display:grid;place-items:center;border-radius:50%;width:42px;height:42px;
+  background:#351921;border:1px solid #9b495b;font-size:23px;line-height:1}
+.account-dots{font-size:22px;line-height:1}
+.account-menu-options{position:absolute;right:0;top:calc(100% + 6px);min-width:170px;
+  display:grid;gap:4px;padding:6px;background:#231219;border:1px solid #70404b;border-radius:12px;
+  box-shadow:0 8px 24px #0009}
+.account-menu-options button{text-align:left;min-height:44px}
+.profile-avatar{width:64px;height:64px;font-size:35px}
+.avatar-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.avatar-choices button{min-width:48px;min-height:48px;font-size:24px;padding:6px}
+.avatar-choices button[aria-pressed="true"]{border-color:#f4ce76;background:#492c32}
 
 
 /* LOVE & PAIN – persönliche Einstiegsseite mit dem Original-Herzmotiv */
@@ -318,6 +333,11 @@ let days = [], outdoorIdeas = [], state = null, account = null;
 let view = "start", selected = 0, monthOffset = 0;
 let editingToyId = null;
 let editingPeriodId = null;
+const avatarOptions = [
+  ["🙂", "Lächeln"], ["😎", "Sonnenbrille"], ["😉", "Zwinkern"],
+  ["😍", "Herzaugen"], ["😏", "Schmunzeln"], ["🥰", "Lächeln mit Herzen"],
+  ["😇", "Heiligenschein"], ["😈", "Kleiner Teufel"], ["🤩", "Sternenaugen"]
+];
 
 async function loadPrivateData(userId) {
   const { data: catalog, error } = await authClient.from("love_catalog")
@@ -469,7 +489,52 @@ if(view==="vorlieben") root.innerHTML=prefsView();
 if(view==="eigene") root.innerHTML=customView();
 if(view==="outdoor") root.innerHTML=outdoorView();
 if(view==="toys") root.innerHTML=toyGalleryView();
+if(view==="profil") root.innerHTML=profileView();
 }
+function profileAvatar(value) {
+  return avatarOptions.some(([emoji]) => emoji === value) ? value : avatarOptions[0][0];
+}
+
+function profileView() {
+  return `<section class="panel">
+    <h2>Mein Bereich</h2>
+    <div class="account-avatar profile-avatar" aria-hidden="true">${account.avatar}</div>
+    <p>Wähle deinen Smiley.</p>
+    <div class="avatar-choices" role="group" aria-label="Profil-Smiley">
+      ${avatarOptions.map(([emoji, label], index) => `<button type="button"
+        aria-label="${label}" aria-pressed="${emoji === account.avatar}" data-avatar-index="${index}"
+        onclick="saveProfileAvatar(${index})">${emoji}</button>`).join("")}
+    </div>
+    <p id="avatarStatus" role="status"></p>
+  </section>`;
+}
+
+async function saveProfileAvatar(index) {
+  if (!account || pending === account || !avatarOptions[index]) return;
+  const active = account;
+  const [avatar] = avatarOptions[index];
+  if (active.avatar === avatar) return;
+  pending = active;
+  const status = document.getElementById("avatarStatus");
+  status.textContent = "Smiley wird gespeichert …";
+  try {
+    const {error} = await authClient.auth.updateUser({data: {profile_avatar: avatar}});
+    if (active !== account) return;
+    if (error) throw error;
+    active.avatar = avatar;
+    document.getElementById("accountAvatar").textContent = avatar;
+    if (view === "profil") {
+      render();
+      document.getElementById("avatarStatus").textContent = "Smiley gespeichert.";
+      document.querySelector(`[data-avatar-index="${index}"]`)?.focus();
+    }
+  } catch {
+    status.textContent = "Der Smiley konnte nicht gespeichert werden. Versuche es erneut.";
+  } finally {
+    if (pending === active) pending = null;
+  }
+}
+
 function toyPhoto(toy) {
   return /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(toy.photo || "")
     ? `<img src="${toy.photo}" alt="${esc(toy.name)}" loading="lazy">`
@@ -942,18 +1007,25 @@ render();
     siteHeader.style.display = "block";
     appMain.style.display = "block";
     accountBar.style.display = "block";
-    accountBar.replaceChildren();
-    const label = document.createElement("span");
-    label.textContent = "Angemeldet als " + (user.email || "Nutzer") + " ";
-    accountBar.appendChild(label);
-    const logout = document.createElement("button");
-    logout.type = "button";
-    logout.textContent = "Abmelden";
-    logout.addEventListener("click", async () => {
+    account.avatar = profileAvatar(user.user_metadata?.profile_avatar);
+    accountBar.innerHTML = `<details class="account-menu">
+      <summary aria-label="Kontomenü öffnen">
+        <span class="account-avatar" id="accountAvatar" aria-hidden="true">${account.avatar}</span>
+        <span class="account-dots" aria-hidden="true">⋯</span>
+      </summary>
+      <div class="account-menu-options">
+        <button id="profileButton" type="button">Mein Bereich</button>
+        <button id="logoutButton" type="button">Abmelden</button>
+      </div>
+    </details>`;
+    document.getElementById("profileButton").addEventListener("click", () => {
+      accountBar.querySelector("details").open = false;
+      goView("profil");
+    });
+    document.getElementById("logoutButton").addEventListener("click", async () => {
       const { error } = await authClient.auth.signOut();
       if (error) alert("Abmelden fehlgeschlagen: " + error.message);
     });
-    accountBar.appendChild(logout);
   }
 
   function showSignedOut() {
