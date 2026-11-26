@@ -253,6 +253,18 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 .toy-form label[for]{display:block;margin:12px 0 4px}
 </style>
 <style>
+html {
+  -webkit-tap-highlight-color: transparent;
+  accent-color: #ff7587;
+}
+::selection {
+  background: #742338;
+  color: #fff1f2;
+}
+:where(button, summary, a[href], input, select, textarea):focus-visible {
+  outline: 2px solid #f4ce76;
+  outline-offset: 3px;
+}
 #siteHeader {
   border-color: transparent;
   background:
