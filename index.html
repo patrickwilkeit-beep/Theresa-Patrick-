@@ -217,6 +217,11 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 
 </style>
 <style>
+.day.period{box-shadow:inset 0 -4px #f17b96}
+.day.period:disabled{opacity:.65}
+.period-list{padding-left:0;list-style:none}
+.period-list li{padding:8px 0}
+.period-status{display:block;margin-top:6px}
 .toy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px}
 .toy-card{background:#1c1017;border:1px solid #552932;border-radius:14px;padding:14px;overflow-wrap:anywhere}
 .toy-card img{width:100%;height:150px;object-fit:contain;background:#0d080b;border-radius:9px;margin-bottom:8px}
@@ -299,6 +304,7 @@ const categories=["Romantik","Zärtlichkeiten","Oral","Anal","BDSM","Spanking","
 let days = [], outdoorIdeas = [], state = null, account = null;
 let view = "start", selected = 0, monthOffset = 0;
 let editingToyId = null;
+let editingPeriodId = null;
 
 async function loadPrivateData(userId) {
   const { data: catalog, error } = await authClient.from("love_catalog")
@@ -307,26 +313,33 @@ async function loadPrivateData(userId) {
   if (!catalog) return null;
 
   const coupleId = catalog.couple_id;
-  const [progress, personal, toys, toyChoices] = await Promise.all([
+  const [progress, personal, toys, toyChoices, membership, periods] = await Promise.all([
     authClient.from("love_progress").select("idea_id").eq("couple_id", coupleId),
     authClient.from("love_personal").select("kind, item_id, content").eq("user_id", userId),
     authClient.from("love_toys").select("id, name, categories, photo").eq("couple_id", coupleId).order("name"),
-    authClient.from("love_toy_choices").select("idea_id, toy_id").eq("couple_id", coupleId)
+    authClient.from("love_toy_choices").select("idea_id, toy_id").eq("couple_id", coupleId),
+    authClient.from("couple_members").select("period_tracking_enabled").eq("user_id", userId).eq("couple_id", coupleId).maybeSingle(),
+    authClient.from("love_periods").select("id, user_id, starts_on, ends_on, shared").eq("couple_id", coupleId).order("starts_on", {ascending:false})
   ]);
   if (progress.error) throw progress.error;
   if (personal.error) throw personal.error;
   if (toys.error) throw toys.error;
   if (toyChoices.error) throw toyChoices.error;
-  return { catalog, progress: progress.data, personal: personal.data, toys: toys.data, toyChoices: toyChoices.data };
+  if (membership.error) throw membership.error;
+  if (periods.error) throw periods.error;
+  return {
+    catalog, progress: progress.data, personal: personal.data, toys: toys.data, toyChoices: toyChoices.data,
+    canTrackPeriod: membership.data?.period_tracking_enabled === true, periods: periods.data
+  };
 }
 
 function startPrivateData(userId, data) {
   const { catalog, progress, personal } = data;
   const { ideas, outdoor } = catalog.content;
-  account = { userId, coupleId: catalog.couple_id };
+  account = { userId, coupleId: catalog.couple_id, canTrackPeriod: data.canTrackPeriod };
   days = Array.from({length:365}, (_, i) => ({ ...ideas[i % ideas.length], id:"d"+i, day:i }));
   outdoorIdeas = outdoor;
-  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], toys: data.toys, toyChoices: data.toyChoices };
+  state = { done: progress.map(row => row.idea_id), favs: [], wishes: [], custom: [], prefs: [...categories], toys: data.toys, toyChoices: data.toyChoices, periods: data.periods };
   for (const {kind, item_id: id, content} of personal) {
     if (kind === "favorite") state.favs.push(id);
     if (kind === "wish") state.wishes.push(id);
@@ -338,7 +351,7 @@ function startPrivateData(userId, data) {
 
 function clearPrivateData() {
   account = state = null;
-  editingToyId = null;
+  editingToyId = editingPeriodId = null;
   days = [];
   outdoorIdeas = [];
   view = "start";
@@ -566,16 +579,123 @@ function chooseToy(ideaId, toyId, checked) {
   });
 }
 
+function dateKey(date) {
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map(part => String(part).padStart(2, "0")).join("-");
+}
+
+function dateInPeriod(date) {
+  const key = dateKey(date);
+  return state.periods.some(period => key >= period.starts_on &&
+    key <= (period.ends_on || (period.starts_on > dateKey(today) ? period.starts_on : dateKey(today))));
+}
+
+function formatPeriodDate(key) {
+  const [year, month, day] = key.split("-").map(Number);
+  return fmt(new Date(year, month - 1, day));
+}
+
+function periodView(date) {
+  if (!account.canTrackPeriod) {
+    return dateInPeriod(date) ? '<p class="period-status">Periode · von Theresa geteilt</p>' : "";
+  }
+  const owned = state.periods.filter(period => period.user_id === account.userId);
+  const editing = owned.find(period => period.id === editingPeriodId);
+  const history = owned.map(period => `<li>
+    <strong>${formatPeriodDate(period.starts_on)}${period.ends_on ? " bis " + formatPeriodDate(period.ends_on) : " · Ende offen"}</strong>
+    <span class="period-status">${period.shared ? "Im gemeinsamen Kalender sichtbar" : "Nur für mich sichtbar"}</span>
+    <button type="button" onclick="editPeriod('${period.id}')">Bearbeiten</button>
+  </li>`).join("");
+  return `<div class="panel">
+    <form class="toy-form" onsubmit="savePeriod(event)">
+      <h2>${editing ? "Periode bearbeiten" : "Periode eintragen"}</h2>
+      <label for="periodStart">Erster Tag</label>
+      <input type="date" id="periodStart" value="${editing?.starts_on || dateKey(date)}" required>
+      <label for="periodEnd">Letzter Tag (optional)</label>
+      <input type="date" id="periodEnd" value="${editing?.ends_on || ""}">
+      <label class="toy-option"><input type="checkbox" id="periodShared" ${editing?.shared ? "checked" : ""}>
+        Auch für Patrick im gemeinsamen Kalender anzeigen</label>
+      <div class="actions">
+        <button type="submit" class="primary">Speichern</button>
+        ${editing ? `<button type="button" onclick="editPeriod(null)">Abbrechen</button>
+          <button type="button" onclick="removePeriod('${editing.id}')">Eintrag löschen</button>` : ""}
+      </div>
+      <p id="periodStatus" role="status"></p>
+    </form>
+    ${history ? `<h3>Meine Einträge</h3><ul class="period-list">${history}</ul>` : ""}
+  </div>`;
+}
+
+function editPeriod(id) {
+  if (!account?.canTrackPeriod) return;
+  editingPeriodId = id;
+  render();
+  document.getElementById("periodStart")?.focus();
+}
+
+async function savePeriod(event) {
+  event.preventDefault();
+  if (!account?.canTrackPeriod || pending === account) return;
+  const active = account;
+  const form = event.currentTarget;
+  const status = form.querySelector("#periodStatus");
+  const button = form.querySelector('button[type="submit"]');
+  const startsOn = form.querySelector("#periodStart").value;
+  const endsOn = form.querySelector("#periodEnd").value || null;
+  if (endsOn && endsOn < startsOn) {
+    status.textContent = "Der letzte Tag muss am oder nach dem ersten Tag liegen.";
+    return;
+  }
+  const entry = {
+    id: editingPeriodId || crypto.randomUUID(),
+    couple_id: active.coupleId,
+    user_id: active.userId,
+    starts_on: startsOn,
+    ends_on: endsOn,
+    shared: form.querySelector("#periodShared").checked
+  };
+  pending = active;
+  button.disabled = true;
+  try {
+    const {error} = await authClient.from("love_periods").upsert(entry);
+    if (active !== account) return;
+    if (error) {
+      status.textContent = error.code === "23505"
+        ? "Für diesen ersten Tag gibt es schon einen Eintrag. Du kannst ihn unten bearbeiten."
+        : "Speichern fehlgeschlagen. Bitte versuche es erneut.";
+      return;
+    }
+    state.periods = [...state.periods.filter(period => period.id !== entry.id), entry]
+      .sort((a, b) => b.starts_on.localeCompare(a.starts_on));
+    editingPeriodId = null;
+    render();
+  } catch {
+    status.textContent = "Speichern fehlgeschlagen. Bitte versuche es erneut.";
+  } finally {
+    if (pending === active) pending = null;
+    button.disabled = false;
+  }
+}
+
+function removePeriod(id) {
+  if (!account?.canTrackPeriod || !confirm("Diesen Periodeneintrag löschen?")) return;
+  saveChange(() => authClient.from("love_periods").delete().eq("id", id).eq("user_id", account.userId), () => {
+    state.periods = state.periods.filter(period => period.id !== id);
+    editingPeriodId = null;
+  });
+}
+
 function calendarView(){
 let d=dateAt(selected), first=new Date(d.getFullYear(),d.getMonth()+monthOffset,1), year=first.getFullYear(),month=first.getMonth();
 let firstDay=(first.getDay()+6)%7, count=new Date(year,month+1,0).getDate();
 let html=`<div class="panel"><div class="row"><div><div class="small">Euer gemeinsamer Kalender</div><h2>${first.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</h2></div><div><button onclick="changeMonth(-1)">‹</button> <button onclick="changeMonth(1)">›</button></div></div><div class="grid">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<div class="dayhead">${x}</div>`).join("")}`;
 for(let i=0;i<firstDay;i++)html+='<div class="day empty"></div>';
-for(let n=1;n<=count;n++){let idx=Math.round((new Date(year,month,n)-start)/86400000);let valid=idx>=0&&idx<365;html+=`<button class="day ${valid&&idx===selected?"selected":""} ${valid&&state.done.includes("d"+idx)?"done":""} ${valid&&dateAt(idx).getTime()===today.getTime()?"today":""}" ${valid?`onclick="selectDay(${idx})"`:"disabled"}>${n}<span class="day-cat-icon">${categoryIcons[days[idx]?.cat]||""}</span></button>`}
-html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt · Gemischte 40-Tage-Folge: keine gleiche Kategorie direkt hintereinander.</div></div>`;
+for(let n=1;n<=count;n++){let dayDate=new Date(year,month,n);let marked=dateInPeriod(dayDate);let idx=Math.round((dayDate-start)/86400000);let valid=idx>=0&&idx<365;html+=`<button class="day ${marked?"period":""} ${valid&&idx===selected?"selected":""} ${valid&&state.done.includes("d"+idx)?"done":""} ${valid&&dateAt(idx).getTime()===today.getTime()?"today":""}" ${marked?`aria-label="${fmt(dayDate)} · Periode"`:""} ${valid?`onclick="selectDay(${idx})"`:"disabled"}>${n}<span class="day-cat-icon">${categoryIcons[days[idx]?.cat]||""}</span></button>`}
+html+=`</div><div class="small" style="margin-top:10px">Goldener Rand = heute · ✓ = abgehakt${state.periods.length ? " · Rosa Linie = Periode" : ""}</div></div>`;
 let idea=days[selected];
 html+=`<div class="panel"><div class="small">${fmt(d)} · Tag ${selected+1} von 365</div><h2 style="margin-top:5px">Eure Idee des Tages</h2>${categoryTag(idea.cat)}<div class="idea"><h3>${esc(idea.text)}</h3></div><div class="detail-card"><span class="detail-label">👥 Wer macht was?</span><strong>${esc(idea.roles)}</strong></div><div class="detail-grid"><div class="detail-card"><span class="detail-label">⏱ Zeit einplanen</span><strong>${esc(idea.duration)}</strong></div><div class="detail-card"><span class="detail-label">⚡ Intensität</span><strong>${esc(idea.level)}</strong></div></div><div class="detail-card"><span class="detail-label">🧰 Benötigte Utensilien / Vorbereitung</span><ul class="materials">${idea.materials.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><p class="small">Die Angaben sind Vorschläge. Passt Dauer und Material gemeinsam an; Zustimmung, Grenzen und jederzeitige Pause haben Vorrang.</p><label class="checkline"><input type="checkbox" ${state.done.includes(idea.id)?"checked":""} onchange="toggleDone('${idea.id}',this.checked)"> Als erledigt markieren</label><div class="actions"><button class="primary" onclick="toggleFav('${idea.id}')">${state.favs.includes(idea.id)?"★ Favorit entfernen":"☆ Als Favorit speichern"}</button><button onclick="randomIdea()">🎲 Zufallsidee</button></div><div class="actions"><button class="ghost" onclick="addToList('${idea.id}')">+ Meine Wunschliste</button></div></div>`;
 html+=toyChoicesView(idea);
+html+=periodView(d);
 if(d.getDay()===0||d.getDay()===6){
 html+=`<div class="panel"><div class="small">Freiwillig · nur am Wochenende als Zusatz gedacht</div><h2 style="margin-top:5px">🌙 Outdoor &amp; gemeinsame Auszeit</h2><p class="muted">Acht Vorschläge zum Durchsehen – nichts davon ist fest eingeplant. Öffentliche Orte bleiben für alle respektvoll und unauffällig.</p><button class="primary" onclick="goView('outdoor')">Wochenendideen ansehen</button></div>`;
 }
