@@ -311,6 +311,7 @@ select,input,textarea{background:#10090c;border-color:#60202e;color:#fff1f2}
 <main id="appMain" style="display:none">
 <nav class="tabs" id="tabs">
 <button class="tab active" data-view="start">Startseite</button>
+<button class="tab" data-view="kategorien">Kategorien</button>
 <button class="tab" data-view="kalender">Kalender</button><button class="tab" data-view="outdoor">🌙 Outdoor</button><button class="tab" data-view="listen">Wunschlisten</button><button class="tab" data-view="favoriten">Favoriten</button><button class="tab" data-view="vorlieben">Vorlieben</button><button class="tab" data-view="eigene">Eigene Ideen</button>
 <button class="tab" data-view="toys">Toys-Galerie</button>
 </nav>
@@ -439,9 +440,14 @@ function ideaById(id){return allIdeas().find(x=>x.id===id)}
 
 const categoryIcons={"Romantik":"❤️","Zärtlichkeiten":"🥰","Oral":"👄","Anal":"🍑","BDSM":"⛓️","Spanking":"🔥","Fesseln":"🔗","Intensiv":"⚡","Massage":"💆","Selbstbefriedigung":"💋","Outdoor":"🌙"};
 function categoryTag(cat){return `<span class="tag">${categoryIcons[cat]||"•"} ${esc(cat)}</span>`;}
-function startView(){
-  const cards=[
-    ["📅","Kalender","Eure gemeinsamen Tage","kalender"],
+function startView() {
+  return `<div class="home-hero">
+    <button class="primary" onclick="goView('kalender')">Zum gemeinsamen Kalender</button>
+  </div>`;
+}
+
+function categoriesView() {
+  const cards = [
     ["❤️","Romantik","Zärtlichkeit und Nähe","kalender","Romantik"],
     ["🥰","Zärtlichkeiten","Nähe und Geborgenheit","kalender","Zärtlichkeiten"],
     ["👄","Oral","Nur nach beiderseitigem Wunsch","kalender","Oral"],
@@ -456,14 +462,11 @@ function startView(){
     ["☆","Favoriten","Eure gemerkten Ideen","favoriten"],
     ["🔒","Privatbereich","Persönliche Listen","listen"]
   ];
-  return `<div class="home-hero">
-    <button class="primary" onclick="goView('kalender')">Zum gemeinsamen Kalender</button>
-    <p>Euer gemeinsamer privater Bereich für Ideen, Wünsche und besondere Momente.</p>
-  </div>
+  return `<h2>Kategorien</h2>
   <div class="home-actions">${cards.map(c=>`<button class="home-card" onclick="goView('${c[3]}',${c[4]?`'${c[4]}'`:"null"})">
     <span class="home-icon">${c[0]}</span><strong>${c[1]}</strong><small>${c[2]}</small></button>`).join("")}</div>
   <div class="panel"><h2>Schichtmodell</h2><p class="muted">Der Wochenrhythmus wechselt in dieser Reihenfolge: Nacht → Spät → Früh. Frühschicht: Mo–Fr, 06:00–14:00 · Spätschicht: Mo–Fr, 14:00–22:00 · Nachtschicht: fünf Nächte von So 22:00 bis Fr 06:00; die letzte Schicht läuft Do 22:00–Fr 06:00. Wochenendarbeit bleibt freiwillig.</p></div>
-  <p class="small" style="text-align:center;margin-top:16px">Private Inhalte werden hier nicht eingeblendet.</p>`;
+  `;
 }
 function goView(v,cat=null){
   today = berlinCalendarDate();
@@ -482,6 +485,7 @@ today = berlinCalendarDate();
 document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
 let root=document.getElementById("app");
 if(view==="start") root.innerHTML=startView();
+if(view==="kategorien") root.innerHTML=categoriesView();
 if(view==="kalender") root.innerHTML=calendarView();
 if(view==="listen") root.innerHTML=listView();
 if(view==="favoriten") root.innerHTML=favView();
